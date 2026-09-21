@@ -44,6 +44,31 @@ select,input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1p
 input[type=range]{width:100%;accent-color:var(--blue)}
 .f{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
 .f .full{grid-column:1/-1}
+.req:after{content:" *";color:#dc3a4b}
+.cb{position:relative}
+.cb ul{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:#fff;border:1px solid #cfd8e6;border-radius:8px;box-shadow:0 10px 26px rgba(15,27,51,.13);max-height:262px;overflow:auto}
+.cb ul[hidden]{display:none}
+.cb li{padding:7px 9px;border-radius:5px;cursor:pointer;font-size:13px;display:flex;gap:10px;align-items:baseline}
+.cb li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb li small{color:var(--mut);font-size:11.5px;margin-left:auto;flex:none}
+.cb li[aria-selected=true]{background:#e8f0fe}
+.cb li.none{color:var(--mut);cursor:default;display:block}
+.cb input[aria-invalid=true]{border-color:#dc3a4b;background:#fffafa}
+.mark{background:#fff0a8;border-radius:2px}
+.err{color:#b3202f;font-size:12.5px;margin:10px 0 0}
+.ph{color:var(--mut);font-size:13.5px;margin:0}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:#eef2f9;color:#44506b;white-space:nowrap}
+.src{font-size:11.5px;color:var(--mut);margin:12px 0 0}
+.src a{color:var(--mut)}
+.fail{background:#fde5e8;border:1px solid #f6c3ca;color:#8f1a27;border-radius:8px;padding:10px 14px;font-size:12.5px}
+.wx{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.wx .ic{font-size:46px;line-height:1}
+.wx .tmp{font-size:40px;font-weight:700;line-height:1}
+.skel{background:linear-gradient(90deg,#eef2f8,#f7f9fc,#eef2f8);background-size:200% 100%;animation:sh 1.2s linear infinite;border-radius:6px;height:12px}
+@keyframes sh{to{background-position:-200% 0}}
+.bar-in{display:flex;align-items:center;gap:10px;font-size:12.5px;margin:9px 0}
+.toolbar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.toolbar .cb{min-width:260px;flex:1 1 260px}
 .rv{float:right;color:var(--tx);font-weight:600}
 button.go{background:var(--blue);color:#fff;border:0;border-radius:6px;padding:10px 20px;font:600 14px Inter,sans-serif;cursor:pointer}
 button.go:hover{background:#1559c8}
@@ -76,45 +101,100 @@ code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
 <!-- OVERVIEW -->
 <section class="page" id="overview">
   <h1>Cold Chain Overview</h1>
-  <p class="sub">Temperature, humidity, door opens and silent failures across all shipments in the dataset.</p>
-  <div class="note">The dataset has no timestamps, so this page summarises every shipment rather than "today". Live "today" figures need a data feed with dates.</div>
-  <div class="grid g5" id="kpis"></div>
-  <div class="grid e2" style="margin-top:16px">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
-        <div><h2>Readings: no failure vs silent failure</h2><p class="sub">Share of shipments in each group, values clipped to the 1st–99th percentile</p></div>
-        <select id="hvar" style="width:200px" aria-label="Variable"></select>
+  <p class="sub">Live conditions and active hazards, read straight from the Open-Meteo and GDACS APIs. For shipment scoring, go to Shipment Prediction.</p>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="cb" id="cb-ovc">
+        <label for="ovc" >Location</label>
+        <input type="text" id="ovc" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="ovc-list" autocomplete="off" placeholder="Type a country, e.g. ind">
+        <ul id="ovc-list" role="listbox" aria-label="Country suggestions" hidden></ul>
       </div>
-      <div id="hist"></div>
-      <div class="legend"><span><i style="border-color:#1a6cf0"></i>No failure</span><span><i style="border-color:#dc3a4b"></i>Silent failure</span></div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
-        <div><h2>Silent-failure rate</h2><p class="sub">Red is well above average, green well below</p></div>
-        <select id="gvar" style="width:160px" aria-label="Group by"></select>
-      </div>
-      <div id="gbars"></div>
-      <p class="sub" id="gavg" style="margin-top:12px"></p>
+      <button class="go" id="ovRefresh" type="button">Refresh</button>
+      <p class="sub" id="ovStamp" style="margin:0 0 9px;flex:1 1 200px;text-align:right"></p>
     </div>
   </div>
+
+  <div id="ovErr" style="margin-top:16px"></div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap">
+      <div><h2 id="ovWhere">Current conditions</h2><p class="sub" id="ovWhen">Loading from Open-Meteo…</p></div>
+      <span class="tag" id="ovDay"></span>
+    </div>
+    <div id="ovNow"></div>
+  </div>
+
+  <div class="grid g5" id="ovKpis" style="margin-top:16px"></div>
+
   <div class="grid e2" style="margin-top:16px">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
-        <div><h2>Shipment explorer</h2><p class="sub">200 random shipments from the dataset</p></div>
-        <select id="exSel" style="width:150px" aria-label="Shipment"></select>
-      </div>
-      <div id="exOut"></div>
+      <h2>Next 48 hours</h2><p class="sub">Temperature and relative humidity at the selected location</p>
+      <div id="ovHourly"></div>
+      <div class="legend"><span><i style="border-color:#1a6cf0"></i>Temperature (°C)</span><span><i style="border-color:#12a05c"></i>Relative humidity (%)</span></div>
+      <p class="src">Source: Open-Meteo Forecast API</p>
     </div>
-    <div class="card"><h2>Signals in the data</h2><p class="sub">Correlation with silent failure. Most are readings taken during the trip, so they cannot be known before shipping.</p><div id="corr"></div></div>
+    <div class="card">
+      <h2>Seven-day outlook</h2><p class="sub">Daily highs and lows, rainfall and peak wind</p>
+      <div class="tw"><table><thead><tr><th>Day</th><th>Conditions</th><th style="text-align:right">High / low</th><th style="text-align:right">Rain</th><th style="text-align:right">Wind</th></tr></thead><tbody id="ovDaily"></tbody></table></div>
+      <p class="src">Source: Open-Meteo Forecast API</p>
+    </div>
+  </div>
+
+  <div class="grid e2" style="margin-top:16px">
+    <div class="card">
+      <h2>Ambient exposure, next 7 days</h2><p class="sub">Hours the outside air sits in each band. Useful for judging how hard a reefer or a passive box has to work on the ground.</p>
+      <div id="ovExposure"></div>
+      <p class="src">Derived from Open-Meteo hourly temperature and humidity</p>
+    </div>
+    <div class="card">
+      <h2>Active hazards here</h2><p class="sub" id="ovLocalSub">GDACS events affecting the selected country</p>
+      <div id="ovLocal"></div>
+      <p class="src">Source: GDACS event list API</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap">
+      <div><h2>Global disaster alerts</h2><p class="sub">Current GDACS events worldwide. Orange and red alerts are the ones that close roads, ports and airports.</p></div>
+      <select id="ovFilter" style="width:210px" aria-label="Filter events">
+        <option value="all">All alert levels</option>
+        <option value="Red">Red only</option>
+        <option value="Orange">Orange and red</option>
+      </select>
+    </div>
+    <div class="grid g5" id="ovAlertKpis" style="margin:4px 0 16px"></div>
+    <div class="tw"><table><thead><tr><th>Alert</th><th>Type</th><th>Event</th><th>Country</th><th>Severity</th><th style="text-align:right">Started</th></tr></thead><tbody id="ovEvents"></tbody></table></div>
+    <p class="src">Source: GDACS (Global Disaster Alert and Coordination System), <a href="https://www.gdacs.org/" target="_blank" rel="noopener">gdacs.org</a></p>
   </div>
 </section>
 
 <!-- PREDICT -->
 <section class="page" id="predict">
   <h1>Shipment Prediction</h1>
-  <p class="sub">Estimate the chance of a silent failure before the shipment leaves. Runs in your browser.</p>
+  <p class="sub">Describe the shipment, then press Predict. The model runs in your browser; nothing is sent anywhere.</p>
   <div class="grid e2">
     <form class="card" id="form" onsubmit="return false">
+      <h2>Your shipment</h2><p class="sub">Origin, destination and food type are required.</p>
+      <div class="f">
+        <div class="cb full" id="cb-from">
+          <label for="from" class="req">Country From</label>
+          <input type="text" id="from" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="from-list" autocomplete="off" placeholder="Type to search, e.g. ind">
+          <ul id="from-list" role="listbox" aria-label="Origin country suggestions" hidden></ul>
+        </div>
+        <div class="cb full" id="cb-to">
+          <label for="to" class="req">Country To</label>
+          <input type="text" id="to" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="to-list" autocomplete="off" placeholder="Type to search, e.g. neth">
+          <ul id="to-list" role="listbox" aria-label="Destination country suggestions" hidden></ul>
+        </div>
+        <div class="cb full" id="cb-food">
+          <label for="food" class="req">Food Type</label>
+          <input type="text" id="food" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="food-list" autocomplete="off" placeholder="Type a food or category, e.g. cheese, seafood">
+          <ul id="food-list" role="listbox" aria-label="Food type suggestions" hidden></ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:22px">Route and packing</h2><p class="sub">The four values the risk model is trained on.</p>
       <div class="f">
         <div class="full"><label for="transit">Planned transit time (door to door) <span class="rv" id="v-transit"></span></label><input type="range" id="transit" min="0.5" max="17.5" step="0.5" value="4"></div>
         <div><label for="legs">Transport legs / hand-offs</label><select id="legs"><option>1</option><option selected>2</option><option>3</option></select></div>
@@ -122,7 +202,11 @@ code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
         <div class="full"><label for="fill">Fill ratio (product volume ÷ container capacity) <span class="rv" id="v-fill"></span></label><input type="range" id="fill" min="0.1" max="1" step="0.01" value="0.72"></div>
         <div class="full"><label for="opens">Known or planned door opens (optional, e.g. customs check)</label><input type="number" id="opens" min="0" max="60" step="1" placeholder="Leave empty to skip"></div>
       </div>
-      <div style="margin-top:20px"><button class="ghost" id="reset" type="button" style="margin:0">Reset</button></div>
+      <div style="margin-top:20px;display:flex;align-items:center">
+        <button class="go" id="btnPredict" type="button">Predict</button>
+        <button class="ghost" id="btnReset" type="button">Reset</button>
+      </div>
+      <div id="formErr" aria-live="polite"></div>
     </form>
     <div class="card" id="result" aria-live="polite"></div>
   </div>
@@ -133,13 +217,14 @@ code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
   <h1>Information</h1>
   <p class="sub">How to use the tool, and what every variable in the dataset means.</p>
   <div class="grid e2">
-    <div class="card"><h2>How to use it</h2><p class="sub">Three steps</p>
+    <div class="card"><h2>How to use it</h2><p class="sub">Four steps</p>
       <ol style="padding-left:18px;margin:0;line-height:1.8">
-        <li>Open <b>Shipment Prediction</b> and enter transit time, number of legs, package type and fill ratio. The result updates as you type.</li>
-        <li>Read the risk and its band. Then check <i>What if</i> to see how a shorter trip, fewer hand-offs or other packaging changes it.</li>
-        <li>Optionally enter a known number of door opens to see the risk for that handling.</li>
+        <li>Open <b>Shipment Prediction</b> and pick <b>Country From</b>, <b>Country To</b> and <b>Food Type</b>. Start typing and choose from the list — typing <code>ind</code> offers India and Indonesia.</li>
+        <li>Set transit time, number of legs, package type and fill ratio.</li>
+        <li>Press <b>Predict</b>. Nothing is scored until you do, so you can change your mind freely while filling the form.</li>
+        <li>Read the risk band, the shelf-life check for your food type, then <i>What if</i> to see how a shorter trip, fewer hand-offs or other packaging changes it.</li>
       </ol>
-      <p class="sub" style="margin:14px 0 0">The model only uses four inputs known before shipping. Sensor readings such as temperature and humidity are only known after the trip, so they are not model inputs.</p></div>
+      <p class="sub" style="margin:14px 0 0">The risk model only uses four inputs known before shipping. Sensor readings such as temperature and humidity are only known after the trip, so they are not model inputs — for live weather and hazards, use the <b>Overview</b> page, which reads Open-Meteo and GDACS directly.</p></div>
     <div class="card"><h2>Risk bands</h2><p class="sub" id="bandSub"></p>
       <table><tbody id="bands"></tbody></table></div>
   </div>
@@ -177,6 +262,7 @@ code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
 
 </main>
 <script src="data.js"></script>
+<script src="refdata.js"></script>
 <script>
 /* ===== EDIT ME ===== */
 const TEAM=[
@@ -201,45 +287,323 @@ const ADV={LOW:"Standard handling.",MEDIUM:"Review before shipping: shorten the 
 const bars=(el,rows)=>$(el).innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%;background:${r[2]}"></i></div><b style="text-align:right">${r[3]}</b></div>`).join("");
 const kv=rows=>rows.map(m=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)"><span>${m[0]}</span><b style="text-align:right">${m[1]}</b></div>`).join("");
 
-/* ---------- Overview ---------- */
-const av=D.mean;
-$("#kpis").innerHTML=[["Shipments",fmt(D.rows),D.cols+" columns"],["Silent failure rate",pct(D.rate,1),"about 1 in 5 shipments"],["Avg. temperature",av.temp_mean_c.toFixed(1)+"°C","avg. peak "+av.temp_max_c.toFixed(1)+"°C"],["Avg. humidity",pct(av.rh_mean),"avg. peak "+pct(av.rh_max)],["Avg. door opens",av.door_opens.toFixed(1),"per shipment"]]
- .map(k=>`<div class="card kpi"><small>${k[0]}</small><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
-const HL={transit_days:"Transit time (days)",door_opens:"Door opens",temp_mean_c:"Mean temperature (°C)",temp_max_c:"Max temperature (°C)",rh_mean:"Mean humidity (fraction)",vibration_index:"Vibration index",temp_std_c:"Temperature std. dev. (°C)",temp_recovery_rate:"Temperature recovery rate"};
-$("#hvar").innerHTML=Object.keys(D.hist).map(k=>`<option value="${k}">${HL[k]}</option>`).join("");
-function drawHist(){
- const h=D.hist[$("#hvar").value],W=700,H=230,l=40,r=10,t=10,b=28,n=20,mx=Math.max(...h.ok,...h.fail)*1.1,
-  X=i=>l+(i+.5)*(W-l-r)/n,Y=v=>t+(1-v/mx)*(H-t-b),ln=a=>a.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" "),
-  ar=(a,c)=>`<polygon points="${X(0)},${Y(0)} ${ln(a)} ${X(n-1)},${Y(0)}" fill="${c}" opacity=".16"/><polyline points="${ln(a)}" fill="none" stroke="${c}" stroke-width="2"/>`;
- let g="";for(let i=0;i<=4;i++){const v=mx*i/4;g+=`<line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e8edf5"/><text x="${l-6}" y="${Y(v)+4}" text-anchor="end">${(v*100).toFixed(0)}%</text>`}
- for(const i of [0,5,10,15,20])g+=`<text x="${l+i*(W-l-r)/n}" y="${H-8}" text-anchor="middle">${h.edges[i]}</text>`;
- $("#hist").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Distribution by outcome">${g}${ar(h.ok,"#1a6cf0")}${ar(h.fail,"#dc3a4b")}</svg>`}
-$("#hvar").onchange=drawHist;drawHist();
-const GL={transit_days:"Transit time",leg_count:"Transport legs",package_type:"Package type",carrier_id:"Carrier",origin_zone:"Origin zone",dest_zone:"Destination zone"};
-$("#gvar").innerHTML=Object.keys(GL).map(k=>`<option value="${k}">${GL[k]}</option>`).join("");
-const gl=(k,v)=>{if(k=="transit_days"){const m=v.match(/\((\d+), (\d+)\]/);return +m[2]>=20?m[1]+"+ days":m[1]+"–"+m[2]+" days"}return k=="leg_count"?v+(v=="1"?" leg":" legs"):(GL[k].split(" ").pop()=="zone"?"Zone ":k=="carrier_id"?"Carrier ":"Type ")+v};
-function drawGroup(){const k=$("#gvar").value,g=D.groups[k],mx=Math.max(...g.map(x=>x[1]));
- bars("#gbars",g.map(([v,r,n])=>[gl(k,v),r/mx*100,r>D.rate*1.25?"#dc3a4b":r<D.rate*.8?"#12a05c":"#1a6cf0",pct(r,1)]));
- $("#gavg").textContent="Dataset average: "+pct(D.rate,1)+". Groups with few shipments are noisier."}
-$("#gvar").onchange=drawGroup;drawGroup();
-const S=D.sample,ci=Object.fromEntries(S.cols.map((c,i)=>[c,i]));
-$("#exSel").innerHTML=S.rows.map((r,i)=>`<option value="${i}">${r[0]}</option>`).join("");
-function drawEx(){const r=S.rows[$("#exSel").value],g=c=>r[ci[c]],
- p=risk({transit_days:g("transit_days"),fill_ratio:g("fill_ratio"),leg_count:g("leg_count"),pkg:g("package_type")}),b=band(p),f=g("silent_failure");
- $("#exOut").innerHTML=kv([["Temperature mean / min / max",`${g("temp_mean_c")} / ${g("temp_min_c")} / ${g("temp_max_c")} °C`],["Mean humidity",pct(g("rh_mean"))],["Door opens",g("door_opens")],["Transit time",g("transit_days")+" days"],["Legs / package type / fill",`${g("leg_count")} / ${g("package_type")} / ${g("fill_ratio")}`]])+
- `<div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap"><span>Model risk <b>${pct(p)}</b></span><span class="pill ${b[1]}">${b[0]}</span><span style="margin-left:auto">Actual: <span class="pill ${f?"p-bad":"p-ok"}">${f?"Silent failure":"No failure"}</span></span></div>`}
-$("#exSel").onchange=drawEx;drawEx();
-bars("#corr",D.corr.slice(0,10).map(c=>[c[0],Math.abs(c[1])/D.corr[0][1]*100,"#1a6cf0",c[1].toFixed(2)]));
+/* ---------- searchable dropdown ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rx=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const hl=(s,q)=>{if(!q)return esc(s);const i=s.toLowerCase().indexOf(q);return i<0?esc(s):esc(s.slice(0,i))+`<span class="mark">${esc(s.slice(i,i+q.length))}</span>`+esc(s.slice(i+q.length))};
 
-/* ---------- Prediction ---------- */
+/* items: {label, note, s} where s is the lowercase text searched against.
+   Ranks exact prefix above word-start above substring above keyword-only, so
+   typing "ind" puts India and Indonesia at the top. */
+function combo(id,items,onChange,limit){
+ const inp=$("#"+id),list=$("#"+id+"-list"),LIM=limit||60;
+ let shown=[],ix=-1,sel=null;
+ const match=q=>{
+  if(!q)return items.slice(0,LIM);
+  const w=new RegExp("\\b"+rx(q)),out=[];
+  for(const it of items){const lab=it.label.toLowerCase();
+   let r=lab.startsWith(q)?0:w.test(lab)?1:lab.includes(q)?2:it.s.includes(q)?3:-1;
+   if(r>=0)out.push([r,it])}
+  out.sort((a,b)=>a[0]-b[0]||a[1].label.localeCompare(b[1].label));
+  return out.slice(0,LIM).map(x=>x[1])};
+ const draw=q=>{shown=match(q);
+  list.innerHTML=shown.length
+   ?shown.map((it,i)=>`<li role="option" id="${id}-o${i}" data-i="${i}" aria-selected="${i===ix}"><span>${hl(it.label,q)}</span><small>${esc(it.note||"")}</small></li>`).join("")
+   :`<li class="none">No match for &ldquo;${esc(q)}&rdquo;</li>`};
+ const q=()=>inp.value.trim().toLowerCase();
+ const show=()=>{draw(q());list.hidden=false;inp.setAttribute("aria-expanded","true")};
+ const hide=()=>{list.hidden=true;inp.setAttribute("aria-expanded","false");ix=-1;inp.removeAttribute("aria-activedescendant")};
+ const move=d=>{if(list.hidden)show();if(!shown.length)return;
+  ix=(ix+d+shown.length)%shown.length;draw(q());
+  inp.setAttribute("aria-activedescendant",id+"-o"+ix);
+  const li=list.children[ix];if(li&&li.scrollIntoView)li.scrollIntoView({block:"nearest"})};
+ const pick=i=>{const it=shown[i];if(!it)return;sel=it;inp.value=it.label;inp.setAttribute("aria-invalid","false");hide();onChange&&onChange(it)};
+ inp.addEventListener("input",()=>{sel=null;ix=-1;show();onChange&&onChange(null)});
+ inp.addEventListener("focus",show);
+ inp.addEventListener("keydown",e=>{
+  if(e.key=="ArrowDown"){e.preventDefault();move(1)}
+  else if(e.key=="ArrowUp"){e.preventDefault();move(-1)}
+  else if(e.key=="Enter"&&!list.hidden){e.preventDefault();pick(ix<0?0:ix)}
+  else if(e.key=="Escape")hide()});
+ inp.addEventListener("blur",()=>setTimeout(()=>{
+  // A typed value that resolves to exactly one option is accepted on blur;
+  // anything else is left unresolved so validation can catch it.
+  if(!sel&&inp.value.trim()){const m=match(q());if(m.length==1){shown=m;pick(0);return}}
+  hide()},140));
+ list.addEventListener("mousedown",e=>{const li=e.target.closest("li[data-i]");if(li){e.preventDefault();pick(+li.dataset.i)}});
+ return{get value(){return sel},
+  choose(it){sel=it;inp.value=it?it.label:"";inp.setAttribute("aria-invalid","false")},
+  clear(){sel=null;inp.value="";inp.setAttribute("aria-invalid","false")},
+  flag(bad){inp.setAttribute("aria-invalid",bad?"true":"false")},
+  el:inp}}
+
+/* ---------- reference lists (countries + FoodKeeper) ---------- */
+const REF=window.REF;
+const COUNTRIES=REF.countries.map(c=>({label:c[0],iso2:c[1],iso3:c[2],lat:c[3],lon:c[4],cap:c[5],region:c[6],
+ note:c[5]||c[6],s:(c[0]+" "+c[1]+" "+c[2]+" "+c[5]+" "+c[6]).toLowerCase()}));
+const BYISO=Object.fromEntries(COUNTRIES.map(c=>[c.iso3,c]));
+const FOODS=REF.food.map(f=>({label:f[0],cat:REF.foodCategories[f[1]],
+ pantry:[f[2],f[3]],fridge:[f[4],f[5]],freezer:[f[6],f[7]],
+ note:REF.foodCategories[f[1]],s:(f[0]+" "+REF.foodCategories[f[1]]+" "+f[8]).toLowerCase()}));
+
+const km=(a,b)=>{const R=6371,t=d=>d*Math.PI/180,
+ dLa=t(b.lat-a.lat),dLo=t(b.lon-a.lon),
+ h=Math.sin(dLa/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLo/2)**2;
+ return Math.round(2*R*Math.asin(Math.sqrt(h)))};
+
+/* ============================================================
+   OVERVIEW - Open-Meteo + GDACS only.
+   Nothing on this page may read window.CC (the shipment dataset).
+   ============================================================ */
+const WMO={0:["Clear sky","☀️"],1:["Mainly clear","🌤️"],2:["Partly cloudy","⛅"],3:["Overcast","☁️"],
+ 45:["Fog","🌫️"],48:["Rime fog","🌫️"],51:["Light drizzle","🌦️"],53:["Drizzle","🌦️"],55:["Heavy drizzle","🌦️"],
+ 56:["Freezing drizzle","🧊"],57:["Heavy freezing drizzle","🧊"],61:["Light rain","🌧️"],63:["Rain","🌧️"],65:["Heavy rain","🌧️"],
+ 66:["Freezing rain","🧊"],67:["Heavy freezing rain","🧊"],71:["Light snow","🌨️"],73:["Snow","🌨️"],75:["Heavy snow","❄️"],
+ 77:["Snow grains","🌨️"],80:["Rain showers","🌦️"],81:["Heavy rain showers","🌧️"],82:["Violent rain showers","⛈️"],
+ 85:["Snow showers","🌨️"],86:["Heavy snow showers","❄️"],95:["Thunderstorm","⛈️"],96:["Thunderstorm, hail","⛈️"],99:["Thunderstorm, heavy hail","⛈️"]};
+const wmo=c=>WMO[c]||["Unknown","•"];
+const EVT={EQ:"Earthquake",TC:"Tropical cyclone",FL:"Flood",DR:"Drought",WF:"Wildfire",VO:"Volcano"};
+const LVL={Red:"#dc3a4b",Orange:"#e8890c",Green:"#12a05c"};
+const OM="https://api.open-meteo.com/v1/forecast";
+const GDACS="https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=EQ;TC;FL;DR;WF;VO&alertlevel=Green;Orange;Red";
+
+const guessHome=()=>{
+ const r=(navigator.language||"").split("-")[1];
+ return COUNTRIES.find(c=>c.iso2==r)||BYISO.IDN||COUNTRIES[0]};
+let ovPlace=guessHome(),ovEvents=null,ovBusy=false;
+
+const ovCombo=combo("ovc",COUNTRIES,c=>{if(c){ovPlace=c;ovLoad()}});
+ovCombo.choose(ovPlace);
+
+const loadingRows=n=>Array.from({length:n},(_,i)=>`<div class="skel" style="margin:10px 0;width:${90-i*7}%"></div>`).join("");
+
+async function getJSON(url,label){
+ const r=await fetch(url,{cache:"no-store"});
+ if(!r.ok)throw new Error(`${label} returned HTTP ${r.status}`);
+ return r.json()}
+
+async function ovLoad(){
+ if(ovBusy)return;ovBusy=true;
+ $("#ovErr").innerHTML="";
+ $("#ovWhere").textContent=`Current conditions — ${ovPlace.label}`;
+ $("#ovWhen").textContent="Loading from Open-Meteo…";
+ $("#ovNow").innerHTML=loadingRows(2);
+ $("#ovHourly").innerHTML=loadingRows(4);
+ $("#ovExposure").innerHTML=loadingRows(5);
+
+ const wxUrl=`${OM}?latitude=${ovPlace.lat}&longitude=${ovPlace.lon}`
+  +"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day"
+  +"&hourly=temperature_2m,relative_humidity_2m"
+  +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max"
+  +"&timezone=auto&forecast_days=7";
+
+ const [wx,gd]=await Promise.allSettled([
+  getJSON(wxUrl,"Open-Meteo"),
+  ovEvents?Promise.resolve(ovEvents):getJSON(GDACS,"GDACS")]);
+
+ const bad=[];
+ if(wx.status=="fulfilled")drawWeather(wx.value);
+ else{bad.push("Open-Meteo: "+wx.reason.message);clearWeather()}
+ if(gd.status=="fulfilled"){ovEvents=gd.value;drawEvents()}
+ else{bad.push("GDACS: "+gd.reason.message);clearEvents()}
+
+ if(bad.length)$("#ovErr").innerHTML=`<div class="fail"><b>Live data unavailable.</b> ${bad.map(esc).join(" · ")} — check the connection and press Refresh.</div>`;
+ $("#ovStamp").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+ ovBusy=false}
+
+function clearWeather(){
+ $("#ovNow").innerHTML='<p class="ph">No current conditions.</p>';
+ $("#ovKpis").innerHTML="";$("#ovHourly").innerHTML="";$("#ovDaily").innerHTML="";
+ $("#ovExposure").innerHTML='<p class="ph">No hourly data.</p>';$("#ovWhen").textContent="—"}
+
+function drawWeather(w){
+ const c=w.current,[txt,icon]=wmo(c.weather_code);
+ $("#ovWhen").textContent=`${ovPlace.cap||ovPlace.label} · ${ovPlace.lat.toFixed(2)}, ${ovPlace.lon.toFixed(2)} · local time `
+  +new Date(c.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+` (${w.timezone_abbreviation})`;
+ $("#ovDay").textContent=c.is_day?"Daytime":"Night";
+ $("#ovNow").innerHTML=`<div class="wx"><div class="ic" aria-hidden="true">${icon}</div>
+  <div><div class="tmp">${c.temperature_2m.toFixed(1)}°C</div><div class="sub" style="margin:4px 0 0">${esc(txt)} · feels like ${c.apparent_temperature.toFixed(1)}°C</div></div></div>`;
+
+ $("#ovKpis").innerHTML=[
+  ["Temperature",c.temperature_2m.toFixed(1)+"°C","feels like "+c.apparent_temperature.toFixed(1)+"°C"],
+  ["Humidity",c.relative_humidity_2m+"%","relative humidity"],
+  ["Conditions",icon+" "+txt,"WMO code "+c.weather_code],
+  ["Wind",c.wind_speed_10m.toFixed(1)+" km/h","at 10 m"],
+  ["Precipitation",c.precipitation.toFixed(1)+" mm","last hour"]
+ ].map(k=>`<div class="card kpi"><small>${k[0]}</small><b style="font-size:${k[0]=="Conditions"?18:26}px">${k[1]}</b><span>${k[2]}</span></div>`).join("");
+
+ drawHourly(w.hourly);
+ drawDaily(w.daily);
+ drawExposure(w.hourly)}
+
+function drawHourly(h){
+ const n=Math.min(48,h.time.length),T=h.temperature_2m.slice(0,n),R=h.relative_humidity_2m.slice(0,n);
+ const W=700,H=250,l=42,r=42,t=12,b=30;
+ const lo=Math.floor(Math.min(...T)-1),hi=Math.ceil(Math.max(...T)+1),sp=Math.max(hi-lo,1);
+ const X=i=>l+i*(W-l-r)/(n-1),YT=v=>t+(1-(v-lo)/sp)*(H-t-b),YR=v=>t+(1-v/100)*(H-t-b);
+ let g="";
+ for(let k=0;k<=4;k++){const v=lo+sp*k/4;
+  g+=`<line x1="${l}" x2="${W-r}" y1="${YT(v).toFixed(1)}" y2="${YT(v).toFixed(1)}" stroke="#eef2f8"/>`
+   +`<text x="${l-6}" y="${(YT(v)+4).toFixed(1)}" text-anchor="end">${v.toFixed(0)}°</text>`
+   +`<text x="${W-r+6}" y="${(YR(k*25)+4).toFixed(1)}" text-anchor="start">${k*25}%</text>`}
+ for(let i=0;i<n;i+=8)g+=`<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle">${new Date(h.time[i]).toLocaleTimeString([],{hour:"2-digit"})}</text>`;
+ const path=(a,Y)=>a.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join("");
+ $("#ovHourly").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Temperature and humidity for the next 48 hours">${g}
+  <path d="${path(R,YR)}" fill="none" stroke="#12a05c" stroke-width="2" opacity=".85"/>
+  <path d="${path(T,YT)}" fill="none" stroke="#1a6cf0" stroke-width="2.5"/></svg>`}
+
+function drawDaily(d){
+ $("#ovDaily").innerHTML=d.time.map((day,i)=>{const[txt,icon]=wmo(d.weather_code[i]);
+  return `<tr><td><b>${new Date(day).toLocaleDateString([],{weekday:"short"})}</b><br><span class="sub" style="margin:0">${new Date(day).toLocaleDateString([],{day:"numeric",month:"short"})}</span></td>
+  <td>${icon} ${esc(txt)}</td>
+  <td style="text-align:right;white-space:nowrap"><b>${Math.round(d.temperature_2m_max[i])}°</b> / ${Math.round(d.temperature_2m_min[i])}°</td>
+  <td style="text-align:right">${d.precipitation_sum[i].toFixed(1)} mm</td>
+  <td style="text-align:right">${Math.round(d.wind_speed_10m_max[i])} km/h</td></tr>`}).join("")}
+
+/* Hours of ambient exposure per band - what the cooling has to fight on the
+   ground, straight from the hourly forecast. */
+function drawExposure(h){
+ const BANDS=[["Freezing, below 0°C",v=>v<0,"#1a6cf0"],["Chilled, 0 to 8°C",v=>v>=0&&v<8,"#12a05c"],
+  ["Mild, 8 to 20°C",v=>v>=8&&v<20,"#66748f"],["Warm, 20 to 30°C",v=>v>=20&&v<30,"#e8890c"],
+  ["Heat stress, 30°C and up",v=>v>=30,"#dc3a4b"]];
+ const T=h.temperature_2m,R=h.relative_humidity_2m,n=T.length;
+ const rows=BANDS.map(([lab,f,col])=>{const c=T.filter(f).length;return[lab,c/n*100,col,c+" h"]});
+ bars("#ovExposure",rows);
+ const humid=R.filter(v=>v>=85).length,peak=Math.max(...T);
+ $("#ovExposure").insertAdjacentHTML("beforeend",
+  `<p class="sub" style="margin:14px 0 0">${n} forecast hours. Peak air temperature <b>${peak.toFixed(1)}°C</b>; <b>${humid} h</b> at 85% relative humidity or above, when condensation on cold packaging becomes likely.</p>`)}
+
+function clearEvents(){
+ $("#ovLocal").innerHTML='<p class="ph">No hazard data.</p>';
+ $("#ovAlertKpis").innerHTML="";
+ $("#ovEvents").innerHTML='<tr><td colspan="6" class="ph">No hazard data.</td></tr>'}
+
+const evAffects=(p,iso3)=>p.iso3==iso3||(p.affectedcountries||[]).some(a=>a.iso3==iso3);
+const RANK={Red:0,Orange:1,Green:2};
+/* GDACS reports "Magnitude 0" for event types that carry no magnitude, such as
+   floods. Showing that is worse than showing nothing. */
+const sevText=e=>{const s=e.severitydata||{},t=(s.severitytext||"").trim();
+ return !t||(!s.severity&&/^magnitude\s*0\b/i.test(t))?"—":t};
+
+function drawEvents(){
+ const all=(ovEvents.features||[]).map(f=>f.properties)
+  .sort((a,b)=>(RANK[a.alertlevel]??3)-(RANK[b.alertlevel]??3)||new Date(b.fromdate)-new Date(a.fromdate));
+ const count=l=>all.filter(e=>e.alertlevel==l).length;
+ const here=all.filter(e=>evAffects(e,ovPlace.iso3));
+
+ $("#ovAlertKpis").innerHTML=[
+  ["Active events",all.length,"reported by GDACS"],
+  ["Red alerts",count("Red"),"highest severity"],
+  ["Orange alerts",count("Orange"),"significant"],
+  ["Green alerts",count("Green"),"low impact"],
+  ["Affecting "+ovPlace.label,here.length,"selected location"]
+ ].map(k=>`<div class="card kpi"><small>${esc(k[0])}</small><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
+
+ $("#ovLocalSub").textContent=`GDACS events affecting ${ovPlace.label}`;
+ $("#ovLocal").innerHTML=here.length
+  ?`<ul class="ev">${here.slice(0,8).map(e=>`<li><span class="dot" style="background:${LVL[e.alertlevel]||"#66748f"}"></span>
+    <div><b>${esc(EVT[e.eventtype]||e.eventtype)}</b> — ${esc(e.name||e.description||"")}
+    <br><span class="sub" style="margin:0">${esc(e.alertlevel)} alert · ${esc(sevText(e))} · from ${new Date(e.fromdate).toLocaleDateString()}</span>
+    ${(e.url||{}).report?` <a href="${esc(e.url.report)}" target="_blank" rel="noopener">report</a>`:""}</div></li>`).join("")}</ul>`
+  :`<p class="ph">No active GDACS event lists ${esc(ovPlace.label)} among its affected countries right now.</p>`;
+
+ drawEventTable(all)}
+
+function drawEventTable(all){
+ const f=$("#ovFilter").value;
+ const keep=f=="all"?all:f=="Red"?all.filter(e=>e.alertlevel=="Red"):all.filter(e=>e.alertlevel!="Green");
+ $("#ovEvents").innerHTML=keep.length?keep.slice(0,40).map(e=>{
+  const col=LVL[e.alertlevel]||"#66748f";
+  return `<tr><td><span class="pill" style="background:${col}1f;color:${col}">${esc(e.alertlevel)}</span></td>
+   <td style="white-space:nowrap">${esc(EVT[e.eventtype]||e.eventtype)}</td>
+   <td>${(e.url||{}).report?`<a href="${esc(e.url.report)}" target="_blank" rel="noopener">${esc(e.name||e.description||"Event")}</a>`:esc(e.name||e.description||"Event")}</td>
+   <td>${esc(e.country||((e.affectedcountries||[])[0]||{}).countryname||"—")}</td>
+   <td>${esc(sevText(e))}</td>
+   <td style="text-align:right;white-space:nowrap">${e.fromdate?new Date(e.fromdate).toLocaleDateString():"—"}</td></tr>`}).join("")
+  :'<tr><td colspan="6" class="ph">No events at this alert level.</td></tr>'}
+
+$("#ovFilter").onchange=()=>{if(ovEvents)drawEventTable((ovEvents.features||[]).map(x=>x.properties)
+ .sort((a,b)=>(RANK[a.alertlevel]??3)-(RANK[b.alertlevel]??3)||new Date(b.fromdate)-new Date(a.fromdate)))};
+$("#ovRefresh").onclick=()=>{ovEvents=null;ovLoad()};
+ovLoad();
+
+/* ============================================================
+   SHIPMENT PREDICTION - user inputs + the model. Runs only on
+   the Predict button, never on input.
+   ============================================================ */
+const PLACEHOLDER=`<h2>Prediction</h2><p class="sub">Nothing scored yet</p>
+ <p class="ph">Choose <b>Country From</b>, <b>Country To</b> and <b>Food Type</b>, set the route and packing details, then press <b>Predict</b>.</p>`;
+$("#result").innerHTML=PLACEHOLDER;
+
+let stale=false;
+const markStale=()=>{if(!stale&&$("#result").dataset.done){stale=true;
+ $("#result").insertAdjacentHTML("afterbegin",'<div class="note" id="staleNote">Inputs changed. Press <b>Predict</b> to score the new shipment.</div>')}};
+
+const cFrom=combo("from",COUNTRIES,markStale);
+const cTo=combo("to",COUNTRIES,markStale);
+const cFood=combo("food",FOODS,markStale);
+
+const labels=()=>{$("#v-transit").textContent=(+$("#transit").value)+" days";
+ $("#v-fill").textContent=(+$("#fill").value).toFixed(2)};
+$$("#form input[type=range],#form select,#form input[type=number]").forEach(e=>
+ e.addEventListener("input",()=>{labels();markStale()}));
+labels();
+
+/* Storage life comes from FoodKeeper. Refrigerated wins when the item lists a
+   fridge life, since that is how it would move in a cold chain; otherwise
+   frozen, otherwise ambient. */
+function storage(f){
+ const pick=(pair,mode,icon)=>pair[1]==null?null:{mode,icon,min:pair[0]??pair[1],max:pair[1]};
+ return pick(f.fridge,"Refrigerated","❄️")||pick(f.freezer,"Frozen","🧊")||pick(f.pantry,"Ambient / shelf-stable","📦")}
+
+const days=d=>d>=365?(d/365).toFixed(d%365?1:0)+(d<730?" year":" years"):d>=60?Math.round(d/30)+" months":d+" days";
+
+function shelfCard(f,transit){
+ const st=storage(f);
+ if(!st)return`<h3 style="margin-top:20px">Shelf life — ${esc(f.label)}</h3>
+  <p class="sub" style="margin:4px 0 0">FoodKeeper publishes no storage life for this item, so the trip cannot be checked against one. Category: ${esc(f.cat)}.</p>`;
+ const used=transit/st.min,left=st.min-transit;
+ const v=used>=1?["#dc3a4b","Transit alone outlasts the shortest published storage life. This load cannot arrive with usable life left."]
+  :used>=.5?["#e8890c","The trip eats more than half the shortest published storage life. Little room for a delay."]
+  :["#12a05c","The trip is comfortably inside the published storage life."];
+ return`<h3 style="margin-top:20px">Shelf life — ${esc(f.label)}</h3>
+ <p class="sub" style="margin:4px 0 10px">${st.icon} ${st.mode} · FoodKeeper gives ${days(st.min)}${st.max!=st.min?" to "+days(st.max):""} · category ${esc(f.cat)}</p>
+ <div class="bar" style="height:10px"><i style="width:${Math.min(used*100,100).toFixed(0)}%;background:${v[0]}"></i></div>
+ <p style="margin:8px 0 0;font-size:13px">A ${transit}-day trip uses <b style="color:${v[0]}">${Math.min(used*100,999).toFixed(0)}%</b> of it${left>0?`, leaving about ${days(Math.round(left))} on arrival`:""}. ${v[1]}</p>`}
+
+function routeCard(a,b,transit){
+ const d=km(a,b),pace=Math.round(d/transit);
+ const same=a.iso3==b.iso3;
+ const mode=pace>1500?"only air freight sustains this pace":pace>700?"implies air or express road freight":pace>200?"consistent with road, rail or short sea":"consistent with sea freight or a short domestic leg";
+ return`<h3 style="margin-top:20px">Route</h3>
+ <p class="sub" style="margin:4px 0 10px">${esc(a.label)} → ${esc(b.label)}${same?" (domestic)":""}</p>
+ <table><tbody>
+ <tr><td>Origin</td><td style="text-align:right"><b>${esc(a.label)}</b><br><span class="sub" style="margin:0">${esc(a.cap)} · ${esc(a.region)}</span></td></tr>
+ <tr><td>Destination</td><td style="text-align:right"><b>${esc(b.label)}</b><br><span class="sub" style="margin:0">${esc(b.cap)} · ${esc(b.region)}</span></td></tr>
+ <tr><td>Great-circle distance</td><td style="text-align:right"><b>${same?"0":fmt(d)} km</b><br><span class="sub" style="margin:0">capital to capital</span></td></tr>
+ <tr><td>Implied pace</td><td style="text-align:right"><b>${fmt(pace)} km/day</b><br><span class="sub" style="margin:0">${mode}</span></td></tr>
+ </tbody></table>
+ <p class="sub" style="margin:10px 0 0">Origin and destination are recorded with the shipment and drive the shelf-life and pace checks. The risk model itself was trained without country fields, so they do not move the percentage above.</p>`}
+
 const rowNow=()=>({transit_days:+$("#transit").value,fill_ratio:+$("#fill").value,leg_count:+$("#legs").value,pkg:$("#pkg").value});
+
+function validate(){
+ const miss=[];
+ [[cFrom,"Country From"],[cTo,"Country To"],[cFood,"Food Type"]].forEach(([c,n])=>{
+  const bad=!c.value;c.flag(bad);if(bad)miss.push(n)});
+ $("#formErr").innerHTML=miss.length
+  ?`<p class="err">Select ${miss.map(m=>`<b>${m}</b>`).join(", ")} from the list before predicting.</p>`:"";
+ if(miss.length){const first=[cFrom,cTo,cFood].find(c=>!c.value);first.el.focus()}
+ return !miss.length}
+
 function predict(){
+ if(!validate())return;
+ const from=cFrom.value,to=cTo.value,food=cFood.value;
  const r=rowNow(),p=risk(r),b=band(p);
- $("#v-transit").textContent=r.transit_days+" days";$("#v-fill").textContent=r.fill_ratio.toFixed(2);
  const notes=[];
  if(r.transit_days<RNG.transit_days[0]||r.transit_days>RNG.transit_days[1])notes.push(`Transit time is outside the training range (${RNG.transit_days[0]} to ${RNG.transit_days[1]} days). The prediction is an extrapolation.`);
  if(r.fill_ratio<RNG.fill_ratio[0])notes.push(`Fill ratio is below the training range (${RNG.fill_ratio[0].toFixed(2)} to 1). The prediction is an extrapolation.`);
- const rows=(a)=>a.map(([l,q])=>`<tr><td>${l}</td><td style="text-align:right"><b>${pct(q)}</b></td><td style="text-align:right;color:${q<p-.005?"#12a05c":q>p+.005?"#dc3a4b":"#66748f"}">${q-p>0?"+":""}${((q-p)*100).toFixed(0)}%</td></tr>`).join("");
+ const rows=a=>a.map(([l,q])=>`<tr><td>${l}</td><td style="text-align:right"><b>${pct(q)}</b></td><td style="text-align:right;color:${q<p-.005?"#12a05c":q>p+.005?"#dc3a4b":"#66748f"}">${q-p>0?"+":""}${((q-p)*100).toFixed(0)}%</td></tr>`).join("");
  const wi=[];[1,2].forEach(d=>{if(r.transit_days-d>=RNG.transit_days[0])wi.push([`Transit ${d} day${d>1?"s":""} shorter`,risk({...r,transit_days:r.transit_days-d})])});
  if(r.leg_count>1)wi.push(["One fewer leg / hand-off",risk({...r,leg_count:r.leg_count-1})]);
  ME.categories.package_type.forEach(k=>{if(String(k)!==r.pkg)wi.push([`Switch to package type ${k}`,risk({...r,pkg:String(k)})])});
@@ -248,18 +612,30 @@ function predict(){
  const sc=[["Light handling",lo],["Typical handling",ty],["Heavy handling",hi]];
  let known="";const o=$("#opens").value;
  if(o!==""&&+o>=0){const q=riskAt(r,+o);known=`<p style="margin:10px 0 0;font-size:13px">With <b>${o}</b> door opens: <b>${pct(q)}</b> (${q-p>0?"+":""}${((q-p)*100).toFixed(0)}% vs the headline ${pct(p)})${+o>DR.opens_training_range[1]?`<br><span style="color:#a35c00">More opens than any training shipment (${DR.opens_training_range[1]}); treat as an extrapolation.</span>`:""}</p>`}
- $("#result").innerHTML=`<h2>Prediction</h2><p class="sub">Probability of a silent failure</p>
+
+ $("#result").innerHTML=`<h2>Prediction</h2>
+ <p class="sub">${esc(from.label)} → ${esc(to.label)} · ${esc(food.label)} · ${r.transit_days} days, ${r.leg_count} leg${r.leg_count>1?"s":""}, package type ${r.pkg}</p>
  <div style="display:flex;align-items:center;gap:16px"><div class="big" style="color:${b[2]}">${pct(p)}</div><span class="pill ${b[1]}">${b[0]}</span></div>
  <div class="bar" style="margin:14px 0 8px;height:10px"><i style="width:${Math.min(p*100,100)}%;background:${b[2]}"></i></div>
- <p class="sub" style="margin:0 0 10px">Base rate in training data: ${pct(ME.base_failure_rate)}. Review at ${pct(REV)}, high at ${pct(HI)}.</p>
+ <p class="sub" style="margin:0 0 10px">Probability of a silent failure. Base rate in training data: ${pct(ME.base_failure_rate)}. Review at ${pct(REV)}, high at ${pct(HI)}.</p>
  <p style="margin:0 0 6px;font-size:13.5px">${ADV[b[0]]}</p>${notes.map(n=>`<p style="margin:4px 0;font-size:12.5px;color:#a35c00">! ${n}</p>`).join("")}
- <h3 style="margin-top:18px">What if…</h3><table><tbody>${rows(wi)}</tbody></table>
+ ${shelfCard(food,r.transit_days)}
+ ${routeCard(from,to,r.transit_days)}
+ <h3 style="margin-top:20px">What if…</h3><table><tbody>${rows(wi)}</tbody></table>
  <h3 style="margin-top:16px">If it slips…</h3><table><tbody>${rows(late)}</tbody></table>
  <h3 style="margin-top:16px">Handling (door opens)</h3>
  <p class="sub" style="margin:2px 0 6px">Expected about ${m.toFixed(0)} opens (${pct(qh-ql)} range ${lo} to ${hi}). Opens travel with inspections and delays in the logger data; this shows association, not proof that opening a door causes failure.</p>
- <table><tbody>${sc.map(([l,n])=>`<tr><td>${l} (${n} opens)</td><td style="text-align:right"><b>${pct(riskAt(r,n))}</b></td></tr>`).join("")}</tbody></table>${known}`}
-$$("#form input,#form select").forEach(e=>e.oninput=predict);
-$("#reset").onclick=()=>{$("#form").reset();predict()};predict();
+ <table><tbody>${sc.map(([l,n])=>`<tr><td>${l} (${n} opens)</td><td style="text-align:right"><b>${pct(riskAt(r,n))}</b></td></tr>`).join("")}</tbody></table>${known}`;
+ $("#result").dataset.done="1";stale=false}
+
+$("#btnPredict").onclick=predict;
+$("#btnReset").onclick=()=>{
+ // Called off the prototype: a form exposes its controls as named properties,
+ // so a control with id="reset" would shadow the reset() method.
+ HTMLFormElement.prototype.reset.call($("#form"));
+ [cFrom,cTo,cFood].forEach(c=>c.clear());
+ $("#formErr").innerHTML="";labels();
+ delete $("#result").dataset.done;stale=false;$("#result").innerHTML=PLACEHOLDER};
 
 /* ---------- Information ---------- */
 $("#bandSub").textContent=`Thresholds from the model: review at ${pct(REV)}, high at ${pct(HI)}. The review threshold was picked so a missed failure costs ${ME.cost_ratio_fn_to_fp}x a false alarm.`;
