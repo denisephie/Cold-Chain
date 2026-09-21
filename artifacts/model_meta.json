@@ -1,0 +1,68 @@
+{
+  "created": "2026-09-21T16:13:02",
+  "purpose": "pre-shipment silent-failure risk",
+  "target": "silent_failure",
+  "features": [
+    "transit_days",
+    "fill_ratio",
+    "leg_count",
+    "package_type"
+  ],
+  "numeric_features": [
+    "transit_days",
+    "fill_ratio",
+    "leg_count"
+  ],
+  "categorical_features": [
+    "package_type"
+  ],
+  "categories": {
+    "package_type": [
+      0,
+      1,
+      2
+    ]
+  },
+  "training_ranges": {
+    "transit_days": [
+      0.5,
+      17.332
+    ],
+    "fill_ratio": [
+      0.1855,
+      1.0
+    ],
+    "leg_count": [
+      1.0,
+      3.0
+    ]
+  },
+  "thresholds": {
+    "review": 0.23,
+    "high": 0.5
+  },
+  "cost_ratio_fn_to_fp": 3.5,
+  "metrics_test": {
+    "roc_auc": 0.8445086776604287,
+    "pr_auc": 0.5688621749592591,
+    "brier": 0.11573788523674011,
+    "log_loss": 0.36313897371292114
+  },
+  "best_params": {
+    "subsample": 1.0,
+    "reg_lambda": 3,
+    "n_estimators": 300,
+    "min_child_weight": 10,
+    "max_depth": 2,
+    "learning_rate": 0.03,
+    "gamma": 0.1,
+    "colsample_bytree": 0.6
+  },
+  "base_failure_rate": 0.19675,
+  "versions": {
+    "python": "3.14.5",
+    "sklearn": "1.9.0",
+    "xgboost": "3.4.1",
+    "pandas": "3.0.3"
+  }
+}

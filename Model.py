@@ -1,206 +1,322 @@
+"""
+  1. Risk model         transit_days, fill_ratio, leg_count, package_type -> failure probability
+  2. Door-opens model   same inputs -> expected door opens + 80% range (negative binomial)
+  3. Risk given opens   same inputs + door_opens -> failure probability. What-if only: the actual
+                        number of opens is not known before shipping.
+"""
+
+import json
+import os
+import sys
+import warnings
+from datetime import datetime
 import joblib
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import shap
+import sklearn
 import xgboost as xgb
+from scipy.stats import nbinom
+from sklearn.calibration import calibration_curve
+from sklearn.compose import ColumnTransformer
 from sklearn.metrics import (
-    ConfusionMatrixDisplay,
-    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
     classification_report,
-    confusion_matrix,
-    f1_score,
-    precision_score,
-    recall_score,
+    log_loss,
+    mean_absolute_error,
+    r2_score,
     roc_auc_score,
     roc_curve,
 )
 from sklearn.model_selection import (
+    KFold,
     RandomizedSearchCV,
     StratifiedKFold,
-    cross_validate,
+    cross_val_predict,
     train_test_split,
 )
-from sklearn.preprocessing import LabelEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+warnings.filterwarnings("ignore", category=UserWarning)
 
-# --------------------------------------------------------------------------------------------------#
-# Data Loading & Feature Engineering
-dataset_1 = pd.read_csv("./shipment-sensor-dataset.csv")
+# CONFIG
 
-numerical_features = [
-    "transit_days",
-    "door_opens",
-    "temp_mean_c",
-    "temp_max_c",
-    "temp_min_c",
-    "temp_std_c",
-    "temp_recovery_rate",
-    "rh_mean",
-    "rh_std",
-    "rh_max",
-    "product_volume_l",
-    "fill_ratio",
-    "leg_count",
-    "sensor_gap_hours",
-    "vibration_index",
-]
-categorical_features = ["package_type", "carrier_id", "origin_zone", "dest_zone"]
-target = "silent_failure"
+DATA_PATH = "./shipment-sensor-dataset.csv"
+OUT_DIR = "./artifacts"
+TARGET = "silent_failure"
+OPENS = "door_opens"
+RANDOM_STATE = 42
+TEST_SIZE = 0.20
 
-engineered_dataset = dataset_1.copy()
+# A missed failure is assumed 5x worse than a false alarm
+# a lower COST_FN gives a higher threshold, so fewer shipments are flagged
+COST_FN = 3.5
+COST_FP = 1.0
+HIGH_RISK_CUTOFF = 0.50
 
-engineered_dataset["temp_x_rh_stress"] = (
-    engineered_dataset["temp_max_c"] * engineered_dataset["rh_std"]
-)
-engineered_dataset["opens_x_transit"] = (
-    engineered_dataset["door_opens"] * engineered_dataset["transit_days"]
-)
-engineered_dataset["temp_breach_ratio"] = engineered_dataset[
-    "temp_max_c"
-] / engineered_dataset["temp_mean_c"].abs().replace(0, np.nan)
-engineered_dataset["recovery_x_std"] = (
-    engineered_dataset["temp_recovery_rate"] * engineered_dataset["temp_std_c"]
-)
-engineered_dataset["temp_range_c"] = (
-    engineered_dataset["temp_max_c"] - engineered_dataset["temp_min_c"]
-)
-engineered_dataset["door_opens_per_day"] = engineered_dataset[
-    "door_opens"
-] / engineered_dataset["transit_days"].replace(0, np.nan)
-engineered_dataset["temp_variability_ratio"] = engineered_dataset[
-    "temp_std_c"
-] / engineered_dataset["temp_mean_c"].abs().replace(0, np.nan)
-engineered_dataset["humidity_variability"] = (
-    engineered_dataset["rh_max"] - engineered_dataset["rh_mean"]
-)
-engineered_dataset["vibration_per_day"] = engineered_dataset[
-    "vibration_index"
-] / engineered_dataset["transit_days"].replace(0, np.nan)
-engineered_dataset["legs_per_day"] = engineered_dataset[
-    "leg_count"
-] / engineered_dataset["transit_days"].replace(0, np.nan)
+# Known before shipping
+NUMERIC_FEATURES = ["transit_days", "fill_ratio", "leg_count"]
+CATEGORICAL_FEATURES = ["package_type"]
+FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
-engineered_dataset = engineered_dataset.replace([np.inf, -np.inf], np.nan)
+DOOR_NUMERIC = ["transit_days", "fill_ratio", "leg_count"]
+DOOR_CATEGORICAL = ["package_type"]
+DOOR_FEATURES = DOOR_NUMERIC + DOOR_CATEGORICAL
+INTERVAL = (0.10, 0.90)  # 10th and 90th percentile of door opens
 
-engineered_features = [
-    "temp_x_rh_stress",
-    "opens_x_transit",
-    "temp_breach_ratio",
-    "recovery_x_std",
-    "temp_range_c",
-    "door_opens_per_day",
-    "temp_variability_ratio",
-    "humidity_variability",
-    "vibration_per_day",
-    "legs_per_day",
-]
+os.makedirs(OUT_DIR, exist_ok=True)
 
-final_features = numerical_features + engineered_features + categorical_features
+def make_prep(numeric, categorical):
+    prep = ColumnTransformer(
+        transformers=[
+            ("num", "passthrough", numeric),
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), categorical),
+        ],
+        verbose_feature_names_out=False,
+    )
+    prep.set_output(transform="pandas")
+    return prep
 
-# --------------------------------------------------------------------------------------------------#
-# Encoding & Train/Test Split
-model_dataset = engineered_dataset[final_features + [target]].copy()
-model_dataset = model_dataset.fillna(model_dataset.median(numeric_only=True))
+def save_plot(name):
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUT_DIR, name), dpi=130)
+    plt.close()
 
-encoded_dataset = model_dataset.copy()
-label_encoders = {}
-
-for feature in categorical_features:
-  encoder = LabelEncoder()
-  encoded_dataset[feature] = encoder.fit_transform(
-      encoded_dataset[feature].astype(str)
-  )
-  label_encoders[feature] = encoder
-
-X = encoded_dataset[final_features]
-y = encoded_dataset[target]
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.20, random_state=67, stratify=y
-)
-
-# Calculate scale_pos_weight correctly for un-sampled data
-scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
-print(f"Calculated scale_pos_weight: {scale_pos_weight:.4f}")
-
-# --------------------------------------------------------------------------------------------------#
-# Cross-Validation & Hyperparameter Tuning (Without SMOTE)
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=67)
-
-param_dist = {
-    "n_estimators": [100, 200, 300, 500],
-    "max_depth": [3, 4, 5, 6, 7, 8],
-    "learning_rate": [0.01, 0.03, 0.05, 0.1],
-    "subsample": [0.6, 0.7, 0.8, 0.9, 1.0],
-    "colsample_bytree": [0.4, 0.5, 0.6, 0.7, 0.8],
-    "min_child_weight": [1, 3, 5, 7],
-    "gamma": [0, 0.1, 0.2, 0.3, 0.5],
-    "reg_alpha": [0, 0.1, 0.5, 1.0],
-    "reg_lambda": [0.5, 1.0, 1.5, 2.0],
+PARAM_DIST = {
+    "model__max_depth": [2, 3, 4],
+    "model__n_estimators": [100, 200, 300, 500],
+    "model__learning_rate": [0.02, 0.03, 0.05, 0.1],
+    "model__min_child_weight": [3, 5, 10, 20],
+    "model__subsample": [0.6, 0.8, 1.0],
+    "model__colsample_bytree": [0.6, 0.8, 1.0],
+    "model__reg_lambda": [1, 3, 5, 10],
+    "model__gamma": [0, 0.1, 0.5],
 }
 
-tuning_model = xgb.XGBClassifier(
-    objective="binary:logistic",
-    eval_metric="logloss",
-    scale_pos_weight=scale_pos_weight,
-    random_state=67,
+# Load and split
+df = pd.read_csv(DATA_PATH)
+all_cols = list(dict.fromkeys(FEATURES + DOOR_FEATURES + [OPENS, TARGET]))
+missing_cols = [c for c in all_cols if c not in df.columns]
+if missing_cols:
+    sys.exit(f"Missing columns in CSV: {missing_cols}")
+
+data = df[all_cols].dropna(subset=[TARGET]).copy()
+data[TARGET] = data[TARGET].astype(int)
+assert set(data[TARGET].unique()) <= {0, 1}, "Target must be 0/1"
+
+X = data[FEATURES]
+y = data[TARGET]
+train, test = train_test_split(data, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y)
+X_train, X_test = train[FEATURES], test[FEATURES]
+y_train, y_test = train[TARGET], test[TARGET]
+door_train = train.dropna(subset=[OPENS]).copy()
+door_test = test.dropna(subset=[OPENS]).copy()
+door_train[OPENS] = door_train[OPENS].round().astype(int)
+door_test[OPENS] = door_test[OPENS].round().astype(int)
+
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+
+# Risk Model
+pipeline = Pipeline(
+    steps=[
+        ("prep", make_prep(NUMERIC_FEATURES, CATEGORICAL_FEATURES)),
+        (
+            "model",
+            xgb.XGBClassifier(
+                objective="binary:logistic",
+                eval_metric="logloss",
+                monotone_constraints={"transit_days": 1},  # longer transit never lowers risk
+                random_state=RANDOM_STATE,
+                n_jobs=-1,
+            ),
+        ),
+    ]
 )
 
 search = RandomizedSearchCV(
-    tuning_model,
-    param_distributions=param_dist,
-    n_iter=50,
-    scoring="f1",
+    pipeline,
+    param_distributions=PARAM_DIST,
+    n_iter=40,
+    scoring="neg_log_loss",
     cv=cv,
-    random_state=67,
+    random_state=RANDOM_STATE,
     n_jobs=-1,
-    verbose=1,
+    refit=True,
 )
-
 search.fit(X_train, y_train)
-
-# --------------------------------------------------------------------------------------------------#
-# Training & Evaluation
 model = search.best_estimator_
-model.fit(X_train, y_train)
 
-y_pred = model.predict(X_test)
-y_prob = model.predict_proba(X_test)[:, 1]
+# Threshold from out-of-fold predictions
+oof_prob = cross_val_predict(model, X_train, y_train, cv=cv, method="predict_proba")[:, 1]
+thr_grid = np.round(np.arange(0.05, 0.96, 0.01), 2)
 
-print("\n--- Model Evaluation at Default Threshold (0.50) ---")
-print(classification_report(y_test, y_pred))
+def expected_cost(y_true, prob, thr):
+    pred = prob >= thr
+    fn = ((~pred) & (y_true == 1)).sum()
+    fp = (pred & (y_true == 0)).sum()
+    return (COST_FN * fn + COST_FP * fp) / len(y_true)
 
-# Threshold Search
-thresholds = np.arange(0.1, 0.9, 0.05)
-threshold_results = []
+costs = np.array([expected_cost(y_train.values, oof_prob, t) for t in thr_grid])
+review_threshold = float(thr_grid[costs.argmin()])
+high_threshold = max(HIGH_RISK_CUTOFF, review_threshold + 0.05)
 
-for t in thresholds:
-  y_p = (y_prob >= t).astype(int)
-  threshold_results.append({
-      "threshold": round(t, 2),
-      "precision": precision_score(y_test, y_p, zero_division=0),
-      "recall": recall_score(y_test, y_p, zero_division=0),
-      "f1": f1_score(y_test, y_p, zero_division=0),
-  })
+print("Threshold trade-off (out-of-fold, train):")
+print("   thr  flagged  precision  recall  false alarms per real failure")
+for t in (0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50):
+    flagged = oof_prob >= t
+    tp = int((flagged & (y_train.values == 1)).sum())
+    fp = int((flagged & (y_train.values == 0)).sum())
+    print(f"  {t:>4.2f}  {flagged.mean():>6.0%}  {tp / max(flagged.sum(), 1):>9.2f}  "
+          f"{tp / (y_train.values == 1).sum():>6.2f}  {fp / max(tp, 1):>6.1f}")
+print(f"\nReview threshold {review_threshold:.2f}, high {high_threshold:.2f}")
 
-threshold_df = pd.DataFrame(threshold_results)
-best_f1_row = threshold_df.loc[threshold_df["f1"].idxmax()]
-best_threshold = best_f1_row["threshold"]
+# Test
+test_prob = model.predict_proba(X_test)[:, 1]
+test_pred = (test_prob >= review_threshold).astype(int)
+roc_auc = roc_auc_score(y_test, test_prob)
+pr_auc = average_precision_score(y_test, test_prob)
+brier = brier_score_loss(y_test, test_prob)
+ll = log_loss(y_test, test_prob)
 
-print(f"\n--- Model Evaluation at Optimal Threshold ({best_threshold}) ---")
-y_pred_best = (y_prob >= best_threshold).astype(int)
-print(classification_report(y_test, y_pred_best))
+print(f"\nRisk model (test): ROC-AUC {roc_auc:.4f}  PR-AUC {pr_auc:.4f}  Brier {brier:.4f}  log-loss {ll:.4f}")
+print(classification_report(y_test, test_pred, target_names=["ok", "silent_failure"]))
 
-# --------------------------------------------------------------------------------------------------#
-# Save Artifacts
-joblib.dump(model, "./cold_chain_xgboost.joblib")
-joblib.dump(label_encoders, "./label_encoders.joblib")
-joblib.dump(final_features, "./model_features.joblib")
+# Plots: ROC, calibration, risk - transit time
+typical = {"fill_ratio": X["fill_ratio"].median(), "leg_count": int(X["leg_count"].median()),
+           "package_type": X["package_type"].mode()[0]}
+days = np.linspace(X["transit_days"].quantile(0.01), X["transit_days"].quantile(0.99), 60)
 
-test_results = X_test.copy()
-test_results["actual"] = y_test.values
-test_results["predicted_best_threshold"] = y_pred_best
-test_results["failure_probability"] = y_prob
-test_results.to_csv("./test_predictions.csv", index=False)
+fig, ax = plt.subplots(1, 3, figsize=(15, 4.5))
+fpr, tpr, _ = roc_curve(y_test, test_prob)
+ax[0].plot(fpr, tpr, label=f"AUC = {roc_auc:.3f}")
+ax[0].plot([0, 1], [0, 1], "--", color="gray")
+ax[0].set(title="ROC curve (test)", xlabel="False positive rate", ylabel="True positive rate")
+ax[0].legend()
 
-print("\nArtifacts successfully saved.")
+frac_failed, mean_pred = calibration_curve(y_test, test_prob, n_bins=10, strategy="quantile")
+ax[1].plot(mean_pred, frac_failed, "o-")
+ax[1].plot([0, 1], [0, 1], "--", color="gray")
+ax[1].set(title="Calibration (test)", xlabel="Predicted risk", ylabel="Actual failure rate")
+
+grid = pd.DataFrame({"transit_days": days, **typical})[FEATURES]
+ax[2].plot(days, model.predict_proba(grid)[:, 1])
+ax[2].set(title="Risk vs transit time", xlabel="Transit days", ylabel="Predicted risk")
+save_plot("risk_model.png")
+
+# Door Open Model
+Xd_train, Xd_test = door_train[DOOR_FEATURES], door_test[DOOR_FEATURES]
+opens_train, opens_test = door_train[OPENS], door_test[OPENS].values
+
+cv_kf = KFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+door_search = RandomizedSearchCV(
+    Pipeline([("prep", make_prep(DOOR_NUMERIC, DOOR_CATEGORICAL)),
+              ("model", xgb.XGBRegressor(objective="count:poisson", random_state=RANDOM_STATE, n_jobs=-1))]),
+    param_distributions=PARAM_DIST,
+    n_iter=30,
+    scoring="neg_mean_poisson_deviance",
+    cv=cv_kf,
+    random_state=RANDOM_STATE,
+    n_jobs=-1,
+    refit=True,
+)
+door_search.fit(Xd_train, opens_train)
+door_model = door_search.best_estimator_
+
+# Negative-binomial dispersion (var = mu + mu^2 / k) from out-of-fold train predictions
+oof_mu = cross_val_predict(door_model, Xd_train, opens_train, cv=cv_kf)
+denom = (((opens_train - oof_mu) ** 2) - oof_mu).sum()
+k_disp = float((oof_mu ** 2).sum() / denom) if denom > 0 else 1e6
+
+mu_te = door_model.predict(Xd_test)
+door_r2 = float(r2_score(opens_test, mu_te))
+door_mae = float(mean_absolute_error(opens_test, mu_te))
+print(f"Door-opens model (test): R2 {door_r2:.3f}  MAE {door_mae:.2f}")
+
+# 3. Risk -  Door Opens
+FAIL_NUMERIC = DOOR_NUMERIC + [OPENS]
+FAIL_FEATURES = FAIL_NUMERIC + DOOR_CATEGORICAL
+fail_search = RandomizedSearchCV(
+    Pipeline([("prep", make_prep(FAIL_NUMERIC, DOOR_CATEGORICAL)),
+              ("model", xgb.XGBClassifier(objective="binary:logistic", eval_metric="logloss",
+                                          monotone_constraints={"transit_days": 1, OPENS: 1},
+                                          random_state=RANDOM_STATE, n_jobs=-1))]),
+    param_distributions=PARAM_DIST,
+    n_iter=40,
+    scoring="neg_log_loss",
+    cv=cv,
+    random_state=RANDOM_STATE,
+    n_jobs=-1,
+    refit=True,
+)
+fail_search.fit(door_train[FAIL_FEATURES], door_train[TARGET])
+fail_model = fail_search.best_estimator_
+
+p_te = fail_model.predict_proba(door_test[FAIL_FEATURES])[:, 1]
+b_auc = float(roc_auc_score(door_test[TARGET], p_te))
+print(f"Risk given actual door opens (test): ROC-AUC {b_auc:.4f}")
+
+# PLOT door opens - transit time, risk - door opens
+pct = round((INTERVAL[1] - INTERVAL[0]) * 100)
+mu = door_model.predict(pd.DataFrame({"transit_days": days, **typical})[DOOR_FEATURES])
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4.5))
+ax[0].scatter(door_test["transit_days"], opens_test, s=6, alpha=0.2, label="test shipments")
+ax[0].plot(days, mu, color="tab:red", label="expected")
+ax[0].fill_between(days, nbinom.ppf(INTERVAL[0], k_disp, k_disp / (k_disp + mu)),
+                   nbinom.ppf(INTERVAL[1], k_disp, k_disp / (k_disp + mu)),
+                   color="tab:red", alpha=0.15, label=f"{pct}% range")
+ax[0].set(title="Door opens vs transit time", xlabel="Transit days", ylabel="Door opens")
+ax[0].legend()
+
+opens_axis = np.arange(0, 41)
+for d in (2, 4, 8):
+    grid = pd.DataFrame({"transit_days": d, **typical, OPENS: opens_axis})[FAIL_FEATURES]
+    ax[1].plot(opens_axis, fail_model.predict_proba(grid)[:, 1], label=f"{d} days")
+ax[1].set(title="Risk vs door opens", xlabel="Door opens", ylabel="Predicted risk")
+ax[1].legend()
+save_plot("door_opens.png")
+
+# SAVE
+versions = {"python": sys.version.split()[0], "sklearn": sklearn.__version__,
+            "xgboost": xgb.__version__, "pandas": pd.__version__}
+
+joblib.dump(model, os.path.join(OUT_DIR, "risk_pipeline.joblib"))
+meta = {
+    "created": datetime.now().isoformat(timespec="seconds"),
+    "purpose": "pre-shipment silent-failure risk",
+    "target": TARGET,
+    "features": FEATURES,
+    "numeric_features": NUMERIC_FEATURES,
+    "categorical_features": CATEGORICAL_FEATURES,
+    "categories": {c: sorted(X[c].unique().tolist()) for c in CATEGORICAL_FEATURES},
+    "training_ranges": {c: [float(X[c].min()), float(X[c].max())] for c in NUMERIC_FEATURES},
+    "thresholds": {"review": review_threshold, "high": high_threshold},
+    "cost_ratio_fn_to_fp": COST_FN / COST_FP,
+    "metrics_test": {"roc_auc": roc_auc, "pr_auc": pr_auc, "brier": brier, "log_loss": ll},
+    "best_params": {k.replace("model__", ""): (v.item() if hasattr(v, "item") else v)
+                    for k, v in search.best_params_.items()},
+    "base_failure_rate": float(y.mean()),
+    "versions": versions,
+}
+with open(os.path.join(OUT_DIR, "model_meta.json"), "w") as f:
+    json.dump(meta, f, indent=2)
+
+joblib.dump(door_model, os.path.join(OUT_DIR, "door_opens_model.joblib"))
+joblib.dump(fail_model, os.path.join(OUT_DIR, "risk_given_opens.joblib"))
+door_meta = {
+    "created": datetime.now().isoformat(timespec="seconds"),
+    "door_features": DOOR_FEATURES,
+    "risk_features": FAIL_FEATURES,
+    "nb_dispersion_k": k_disp,
+    "interval": list(INTERVAL),
+    "opens_training_range": [int(data[OPENS].min()), int(data[OPENS].max())],
+    "metrics_test": {"door_r2": door_r2, "door_mae": door_mae, "risk_given_opens_auc": b_auc},
+    "versions": versions,
+}
+with open(os.path.join(OUT_DIR, "door_meta.json"), "w") as f:
+    json.dump(door_meta, f, indent=2)
+
+print(f"\nSaved to {OUT_DIR}/: " + ", ".join(sorted(os.listdir(OUT_DIR))))
