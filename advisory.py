@@ -13,7 +13,7 @@ from datetime import date, timedelta
 GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
-GDACS_URL = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH"
+GDACS_URL = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH"     
 FOODKEEPER_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "foodkeeper_lookup.csv")
 
 TIMEOUT_S = 10

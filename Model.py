@@ -43,7 +43,6 @@ from sklearn.preprocessing import OneHotEncoder
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # CONFIG
-
 DATA_PATH = "./shipment-sensor-dataset.csv"
 OUT_DIR = "./artifacts"
 TARGET = "silent_failure"
