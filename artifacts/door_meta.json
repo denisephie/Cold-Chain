@@ -1,0 +1,36 @@
+{
+  "created": "2026-09-21T16:13:02",
+  "door_features": [
+    "transit_days",
+    "fill_ratio",
+    "leg_count",
+    "package_type"
+  ],
+  "risk_features": [
+    "transit_days",
+    "fill_ratio",
+    "leg_count",
+    "door_opens",
+    "package_type"
+  ],
+  "nb_dispersion_k": 6.767679194733735,
+  "interval": [
+    0.1,
+    0.9
+  ],
+  "opens_training_range": [
+    0,
+    36
+  ],
+  "metrics_test": {
+    "door_r2": 0.42304527759552,
+    "door_mae": 3.476560592651367,
+    "risk_given_opens_auc": 0.8728441726885308
+  },
+  "versions": {
+    "python": "3.14.5",
+    "sklearn": "1.9.0",
+    "xgboost": "3.4.1",
+    "pandas": "3.0.3"
+  }
+}

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ColdChain Monitor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b2a5b;--blue:#1a6cf0;--bg:#f4f7fb;--card:#fff;--line:#e3e9f2;--tx:#0f1b33;--mut:#66748f;--ok:#12a05c;--warn:#e8890c;--bad:#dc3a4b}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.5 Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+aside{position:fixed;inset:0 auto 0 0;width:200px;background:var(--navy);color:#fff;padding:18px 10px;display:flex;flex-direction:column;gap:4px}
+.logo{font-weight:700;font-size:16px;padding:6px 12px 18px;display:flex;gap:10px;align-items:center}
+aside a{color:#c9d6ee;text-decoration:none;padding:10px 12px;border-radius:6px;font-weight:500}
+aside a:hover{background:#12377a}
+aside a.on{background:var(--blue);color:#fff}
+aside a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #7fb0ff;outline-offset:2px}
+.live{margin-top:auto;font-size:12px;color:#9fb3d9;padding:0 12px}
+.live:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#2ecc71;margin-right:8px}
+main{margin-left:200px;padding:28px 32px 48px;max-width:1300px}
+h1{font-size:24px;margin:0 0 2px}h2{font-size:15px;margin:0 0 2px}h3{font-size:13px;margin:0}
+.sub{color:var(--mut);margin:0 0 20px}
+.page{display:none}.page.on{display:block}
+.grid{display:grid;gap:16px}
+.g5{grid-template-columns:repeat(5,1fr)}.g2{grid-template-columns:1.6fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.e2{grid-template-columns:1fr 1fr}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card p.sub{margin:0 0 12px;font-size:12.5px}
+.kpi small{color:var(--mut);font-size:12px}.kpi b{display:block;font-size:26px;line-height:1.2;margin:2px 0}.kpi span{font-size:12px;color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mut);font-weight:500;font-size:12px;padding:8px 8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border:0}
+.tw{overflow-x:auto}
+.pill{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.p-ok{background:#e2f6ec;color:#0c7a45}.p-warn{background:#fdf0dc;color:#a35c00}.p-bad{background:#fde5e8;color:#b3202f}
+.bar{height:8px;border-radius:99px;background:#eaeff7;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px}
+.row{display:grid;grid-template-columns:140px 1fr 56px;gap:10px;align-items:center;margin:10px 0;font-size:12.5px}
+svg text{font:11px Inter,sans-serif;fill:#66748f}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+label{display:block;font-size:12px;color:var(--mut);margin:0 0 4px;font-weight:500}
+select,input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #cfd8e6;border-radius:6px;background:#fff;font:inherit;color:var(--tx)}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.f .full{grid-column:1/-1}
+.rv{float:right;color:var(--tx);font-weight:600}
+button.go{background:var(--blue);color:#fff;border:0;border-radius:6px;padding:10px 20px;font:600 14px Inter,sans-serif;cursor:pointer}
+button.go:hover{background:#1559c8}
+button.ghost{background:#fff;border:1px solid #cfd8e6;border-radius:6px;padding:10px 16px;font:500 14px Inter,sans-serif;cursor:pointer;margin-left:8px}
+.big{font-size:44px;font-weight:700;line-height:1}
+.note{background:#fff8e6;border:1px solid #f3dfa5;color:#7a5b00;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
+.ev{list-style:none;padding:0;margin:0}.ev li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.ev li:last-child{border:0}.ev time{color:var(--mut);width:44px;flex:none;font-variant-numeric:tabular-nums}
+.dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none}
+.cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;text-align:center;font-size:12px;align-items:center}
+.cm div.c{padding:18px 6px;border-radius:6px;font-weight:700;font-size:20px}
+.av{width:72px;height:72px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:24px;font-weight:700;margin-bottom:12px}
+code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
+@media(max-width:1000px){.g5{grid-template-columns:repeat(2,1fr)}.g2,.g3,.e2{grid-template-columns:1fr}}
+@media(max-width:760px){aside{position:static;width:auto;flex-direction:row;overflow-x:auto;padding:8px}.logo,.live{display:none}aside a{white-space:nowrap}main{margin:0;padding:20px 16px}.f{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<aside aria-label="Main">
+  <div class="logo">❄️ <span>ColdChain<br>Monitor</span></div>
+  <a href="#overview">Overview</a>
+  <a href="#predict">Shipment Prediction</a>
+  <a href="#info">Information</a>
+  <a href="#model">Model &amp; Dataset</a>
+  <a href="#about">About Us</a>
+  <div class="live">Monitoring system online</div>
+</aside>
+<main>
+
+<!-- OVERVIEW -->
+<section class="page" id="overview">
+  <h1>Cold Chain Overview</h1>
+  <p class="sub">Temperature, humidity, door opens and silent failures across all shipments in the dataset.</p>
+  <div class="note">The dataset has no timestamps, so this page summarises every shipment rather than "today". Live "today" figures need a data feed with dates.</div>
+  <div class="grid g5" id="kpis"></div>
+  <div class="grid e2" style="margin-top:16px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+        <div><h2>Readings: no failure vs silent failure</h2><p class="sub">Share of shipments in each group, values clipped to the 1st–99th percentile</p></div>
+        <select id="hvar" style="width:200px" aria-label="Variable"></select>
+      </div>
+      <div id="hist"></div>
+      <div class="legend"><span><i style="border-color:#1a6cf0"></i>No failure</span><span><i style="border-color:#dc3a4b"></i>Silent failure</span></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+        <div><h2>Silent-failure rate</h2><p class="sub">Red is well above average, green well below</p></div>
+        <select id="gvar" style="width:160px" aria-label="Group by"></select>
+      </div>
+      <div id="gbars"></div>
+      <p class="sub" id="gavg" style="margin-top:12px"></p>
+    </div>
+  </div>
+  <div class="grid e2" style="margin-top:16px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+        <div><h2>Shipment explorer</h2><p class="sub">200 random shipments from the dataset</p></div>
+        <select id="exSel" style="width:150px" aria-label="Shipment"></select>
+      </div>
+      <div id="exOut"></div>
+    </div>
+    <div class="card"><h2>Signals in the data</h2><p class="sub">Correlation with silent failure. Most are readings taken during the trip, so they cannot be known before shipping.</p><div id="corr"></div></div>
+  </div>
+</section>
+
+<!-- PREDICT -->
+<section class="page" id="predict">
+  <h1>Shipment Prediction</h1>
+  <p class="sub">Estimate the chance of a silent failure before the shipment leaves. Runs in your browser.</p>
+  <div class="grid e2">
+    <form class="card" id="form" onsubmit="return false">
+      <div class="f">
+        <div class="full"><label for="transit">Planned transit time (door to door) <span class="rv" id="v-transit"></span></label><input type="range" id="transit" min="0.5" max="17.5" step="0.5" value="4"></div>
+        <div><label for="legs">Transport legs / hand-offs</label><select id="legs"><option>1</option><option selected>2</option><option>3</option></select></div>
+        <div><label for="pkg">Package type</label><select id="pkg"><option value="0">Package type 0</option><option value="1">Package type 1</option><option value="2">Package type 2</option></select></div>
+        <div class="full"><label for="fill">Fill ratio (product volume ÷ container capacity) <span class="rv" id="v-fill"></span></label><input type="range" id="fill" min="0.1" max="1" step="0.01" value="0.72"></div>
+        <div class="full"><label for="opens">Known or planned door opens (optional, e.g. customs check)</label><input type="number" id="opens" min="0" max="60" step="1" placeholder="Leave empty to skip"></div>
+      </div>
+      <div style="margin-top:20px"><button class="ghost" id="reset" type="button" style="margin:0">Reset</button></div>
+    </form>
+    <div class="card" id="result" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- INFORMATION -->
+<section class="page" id="info">
+  <h1>Information</h1>
+  <p class="sub">How to use the tool, and what every variable in the dataset means.</p>
+  <div class="grid e2">
+    <div class="card"><h2>How to use it</h2><p class="sub">Three steps</p>
+      <ol style="padding-left:18px;margin:0;line-height:1.8">
+        <li>Open <b>Shipment Prediction</b> and enter transit time, number of legs, package type and fill ratio. The result updates as you type.</li>
+        <li>Read the risk and its band. Then check <i>What if</i> to see how a shorter trip, fewer hand-offs or other packaging changes it.</li>
+        <li>Optionally enter a known number of door opens to see the risk for that handling.</li>
+      </ol>
+      <p class="sub" style="margin:14px 0 0">The model only uses four inputs known before shipping. Sensor readings such as temperature and humidity are only known after the trip, so they are not model inputs.</p></div>
+    <div class="card"><h2>Risk bands</h2><p class="sub" id="bandSub"></p>
+      <table><tbody id="bands"></tbody></table></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h2>Variables in the dataset</h2><p class="sub">Descriptions marked <i>inferred</i> come from the column name. Please confirm them against your data dictionary.</p>
+    <div class="tw"><table><thead><tr><th>Variable</th><th>Role</th><th>Meaning</th><th>Mean</th><th>Range</th></tr></thead><tbody id="vars"></tbody></table></div></div>
+</section>
+
+<!-- MODEL -->
+<section class="page" id="model">
+  <h1>Model &amp; Dataset</h1>
+  <p class="sub" id="modelSub"></p>
+  <div class="grid g3">
+    <div class="card"><h2>Dataset</h2><p class="sub">shipment-sensor-dataset.csv</p><table><tbody id="ds"></tbody></table></div>
+    <div class="card"><h2>Model</h2><p class="sub">XGBoost, gradient-boosted trees</p><div id="mdesc" style="font-size:13px"></div></div>
+    <div class="card"><h2>Test-set metrics</h2><p class="sub" id="metSub"></p><div id="metrics"></div></div>
+  </div>
+  <div class="grid e2" style="margin-top:16px">
+    <div class="card"><h2>ROC curve</h2><p class="sub" id="aucRoc"></p><div id="roc"></div></div>
+    <div class="card"><h2>Precision-recall curve</h2><p class="sub" id="aucPr"></p><div id="pr"></div></div>
+    <div class="card"><h2>Calibration</h2><p class="sub">Predicted risk vs actual failure rate, 10 bins. Points on the dashed line mean the percentages can be trusted.</p><div id="cal"></div></div>
+    <div class="card"><h2>Confusion matrix</h2><p class="sub" id="cmSub"></p><div id="cm"></div>
+      <h2 style="margin-top:22px">Threshold trade-off</h2><p class="sub">Lower thresholds catch more failures but flag more shipments</p>
+      <table><thead><tr><th>Threshold</th><th>Flagged</th><th>Precision</th><th>Recall</th></tr></thead><tbody id="thr"></tbody></table></div>
+    <div class="card"><h2>What the model relies on</h2><p class="sub">Share of the model's total gain</p><div id="fi"></div></div>
+    <div class="card"><h2>Door-opens models</h2><p class="sub">Used for the handling forecast and what-if</p><div id="dm"></div></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="page" id="about">
+  <h1>About Us</h1>
+  <p class="sub">The team behind ColdChain Monitor.</p>
+  <div class="grid g3" id="team"></div>
+</section>
+
+</main>
+<script src="data.js"></script>
+<script>
+/* ===== EDIT ME ===== */
+const TEAM=[
+ {name:"Team Member 1",uni:"Universitas Indonesia",major:"Computer Science",role:"Model development"},
+ {name:"Team Member 2",uni:"Institut Teknologi Bandung",major:"Industrial Engineering",role:"Data and logistics"},
+ {name:"Team Member 3",uni:"Universitas Gadjah Mada",major:"Statistics",role:"Evaluation and design"}];
+/* ==================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const CC=window.CC,M=CC.models,ME=CC.meta,D=CC.data,T=CC.test,DR=CC.door,RNG=ME.training_ranges;
+const sig=z=>1/(1+Math.exp(-z)),pct=(v,d=0)=>(v*100).toFixed(d)+"%",fmt=n=>n.toLocaleString("en-US");
+const REV=ME.thresholds.review,HI=ME.thresholds.high;
+
+/* ---------- model in the browser ---------- */
+const tf=(m,x)=>{let z=m.b;for(const t of m.t){let n=t;while(Array.isArray(n))n=x[n[0]]<n[1]?n[2]:n[3];z+=n}return z};
+const vec=(m,r)=>m.n.map(k=>k.startsWith("package_type_")?(k.slice(13)==r.pkg?1:0):r[k]);
+const risk=r=>sig(tf(M.risk,vec(M.risk,r)));
+const mu=r=>Math.exp(tf(M.door,vec(M.door,r)));
+const riskAt=(r,n)=>sig(tf(M.fail,vec(M.fail,{...r,door_opens:n})));
+const nbppf=(q,k,m)=>{const p=k/(k+m);let n=0,pm=Math.pow(p,k),c=pm;while(c<q&&n<500){pm*=(n+k)/(n+1)*(1-p);n++;c+=pm}return n};
+const band=p=>p>=HI?["HIGH","p-bad","#dc3a4b"]:p>=REV?["MEDIUM","p-warn","#e8890c"]:["LOW","p-ok","#12a05c"];
+const ADV={LOW:"Standard handling.",MEDIUM:"Review before shipping: shorten the route or transit time, reduce hand-offs, upgrade the packaging, and add a data logger.",HIGH:"Do not ship as planned. Reduce transit time or legs, or upgrade packaging first, and put a data logger with alarms on the shipment."};
+const bars=(el,rows)=>$(el).innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%;background:${r[2]}"></i></div><b style="text-align:right">${r[3]}</b></div>`).join("");
+const kv=rows=>rows.map(m=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)"><span>${m[0]}</span><b style="text-align:right">${m[1]}</b></div>`).join("");
+
+/* ---------- Overview ---------- */
+const av=D.mean;
+$("#kpis").innerHTML=[["Shipments",fmt(D.rows),D.cols+" columns"],["Silent failure rate",pct(D.rate,1),"about 1 in 5 shipments"],["Avg. temperature",av.temp_mean_c.toFixed(1)+"°C","avg. peak "+av.temp_max_c.toFixed(1)+"°C"],["Avg. humidity",pct(av.rh_mean),"avg. peak "+pct(av.rh_max)],["Avg. door opens",av.door_opens.toFixed(1),"per shipment"]]
+ .map(k=>`<div class="card kpi"><small>${k[0]}</small><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
+const HL={transit_days:"Transit time (days)",door_opens:"Door opens",temp_mean_c:"Mean temperature (°C)",temp_max_c:"Max temperature (°C)",rh_mean:"Mean humidity (fraction)",vibration_index:"Vibration index",temp_std_c:"Temperature std. dev. (°C)",temp_recovery_rate:"Temperature recovery rate"};
+$("#hvar").innerHTML=Object.keys(D.hist).map(k=>`<option value="${k}">${HL[k]}</option>`).join("");
+function drawHist(){
+ const h=D.hist[$("#hvar").value],W=700,H=230,l=40,r=10,t=10,b=28,n=20,mx=Math.max(...h.ok,...h.fail)*1.1,
+  X=i=>l+(i+.5)*(W-l-r)/n,Y=v=>t+(1-v/mx)*(H-t-b),ln=a=>a.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" "),
+  ar=(a,c)=>`<polygon points="${X(0)},${Y(0)} ${ln(a)} ${X(n-1)},${Y(0)}" fill="${c}" opacity=".16"/><polyline points="${ln(a)}" fill="none" stroke="${c}" stroke-width="2"/>`;
+ let g="";for(let i=0;i<=4;i++){const v=mx*i/4;g+=`<line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e8edf5"/><text x="${l-6}" y="${Y(v)+4}" text-anchor="end">${(v*100).toFixed(0)}%</text>`}
+ for(const i of [0,5,10,15,20])g+=`<text x="${l+i*(W-l-r)/n}" y="${H-8}" text-anchor="middle">${h.edges[i]}</text>`;
+ $("#hist").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Distribution by outcome">${g}${ar(h.ok,"#1a6cf0")}${ar(h.fail,"#dc3a4b")}</svg>`}
+$("#hvar").onchange=drawHist;drawHist();
+const GL={transit_days:"Transit time",leg_count:"Transport legs",package_type:"Package type",carrier_id:"Carrier",origin_zone:"Origin zone",dest_zone:"Destination zone"};
+$("#gvar").innerHTML=Object.keys(GL).map(k=>`<option value="${k}">${GL[k]}</option>`).join("");
+const gl=(k,v)=>{if(k=="transit_days"){const m=v.match(/\((\d+), (\d+)\]/);return +m[2]>=20?m[1]+"+ days":m[1]+"–"+m[2]+" days"}return k=="leg_count"?v+(v=="1"?" leg":" legs"):(GL[k].split(" ").pop()=="zone"?"Zone ":k=="carrier_id"?"Carrier ":"Type ")+v};
+function drawGroup(){const k=$("#gvar").value,g=D.groups[k],mx=Math.max(...g.map(x=>x[1]));
+ bars("#gbars",g.map(([v,r,n])=>[gl(k,v),r/mx*100,r>D.rate*1.25?"#dc3a4b":r<D.rate*.8?"#12a05c":"#1a6cf0",pct(r,1)]));
+ $("#gavg").textContent="Dataset average: "+pct(D.rate,1)+". Groups with few shipments are noisier."}
+$("#gvar").onchange=drawGroup;drawGroup();
+const S=D.sample,ci=Object.fromEntries(S.cols.map((c,i)=>[c,i]));
+$("#exSel").innerHTML=S.rows.map((r,i)=>`<option value="${i}">${r[0]}</option>`).join("");
+function drawEx(){const r=S.rows[$("#exSel").value],g=c=>r[ci[c]],
+ p=risk({transit_days:g("transit_days"),fill_ratio:g("fill_ratio"),leg_count:g("leg_count"),pkg:g("package_type")}),b=band(p),f=g("silent_failure");
+ $("#exOut").innerHTML=kv([["Temperature mean / min / max",`${g("temp_mean_c")} / ${g("temp_min_c")} / ${g("temp_max_c")} °C`],["Mean humidity",pct(g("rh_mean"))],["Door opens",g("door_opens")],["Transit time",g("transit_days")+" days"],["Legs / package type / fill",`${g("leg_count")} / ${g("package_type")} / ${g("fill_ratio")}`]])+
+ `<div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap"><span>Model risk <b>${pct(p)}</b></span><span class="pill ${b[1]}">${b[0]}</span><span style="margin-left:auto">Actual: <span class="pill ${f?"p-bad":"p-ok"}">${f?"Silent failure":"No failure"}</span></span></div>`}
+$("#exSel").onchange=drawEx;drawEx();
+bars("#corr",D.corr.slice(0,10).map(c=>[c[0],Math.abs(c[1])/D.corr[0][1]*100,"#1a6cf0",c[1].toFixed(2)]));
+
+/* ---------- Prediction ---------- */
+const rowNow=()=>({transit_days:+$("#transit").value,fill_ratio:+$("#fill").value,leg_count:+$("#legs").value,pkg:$("#pkg").value});
+function predict(){
+ const r=rowNow(),p=risk(r),b=band(p);
+ $("#v-transit").textContent=r.transit_days+" days";$("#v-fill").textContent=r.fill_ratio.toFixed(2);
+ const notes=[];
+ if(r.transit_days<RNG.transit_days[0]||r.transit_days>RNG.transit_days[1])notes.push(`Transit time is outside the training range (${RNG.transit_days[0]} to ${RNG.transit_days[1]} days). The prediction is an extrapolation.`);
+ if(r.fill_ratio<RNG.fill_ratio[0])notes.push(`Fill ratio is below the training range (${RNG.fill_ratio[0].toFixed(2)} to 1). The prediction is an extrapolation.`);
+ const rows=(a)=>a.map(([l,q])=>`<tr><td>${l}</td><td style="text-align:right"><b>${pct(q)}</b></td><td style="text-align:right;color:${q<p-.005?"#12a05c":q>p+.005?"#dc3a4b":"#66748f"}">${q-p>0?"+":""}${((q-p)*100).toFixed(0)}%</td></tr>`).join("");
+ const wi=[];[1,2].forEach(d=>{if(r.transit_days-d>=RNG.transit_days[0])wi.push([`Transit ${d} day${d>1?"s":""} shorter`,risk({...r,transit_days:r.transit_days-d})])});
+ if(r.leg_count>1)wi.push(["One fewer leg / hand-off",risk({...r,leg_count:r.leg_count-1})]);
+ ME.categories.package_type.forEach(k=>{if(String(k)!==r.pkg)wi.push([`Switch to package type ${k}`,risk({...r,pkg:String(k)})])});
+ const late=[1,2].map(d=>[`Trip runs ${d} day${d>1?"s":""} late`,risk({...r,transit_days:r.transit_days+d})]);
+ const m=mu(r),k=DR.nb_dispersion_k,[ql,qh]=DR.interval,lo=nbppf(ql,k,m),hi=nbppf(qh,k,m),ty=Math.round(m);
+ const sc=[["Light handling",lo],["Typical handling",ty],["Heavy handling",hi]];
+ let known="";const o=$("#opens").value;
+ if(o!==""&&+o>=0){const q=riskAt(r,+o);known=`<p style="margin:10px 0 0;font-size:13px">With <b>${o}</b> door opens: <b>${pct(q)}</b> (${q-p>0?"+":""}${((q-p)*100).toFixed(0)}% vs the headline ${pct(p)})${+o>DR.opens_training_range[1]?`<br><span style="color:#a35c00">More opens than any training shipment (${DR.opens_training_range[1]}); treat as an extrapolation.</span>`:""}</p>`}
+ $("#result").innerHTML=`<h2>Prediction</h2><p class="sub">Probability of a silent failure</p>
+ <div style="display:flex;align-items:center;gap:16px"><div class="big" style="color:${b[2]}">${pct(p)}</div><span class="pill ${b[1]}">${b[0]}</span></div>
+ <div class="bar" style="margin:14px 0 8px;height:10px"><i style="width:${Math.min(p*100,100)}%;background:${b[2]}"></i></div>
+ <p class="sub" style="margin:0 0 10px">Base rate in training data: ${pct(ME.base_failure_rate)}. Review at ${pct(REV)}, high at ${pct(HI)}.</p>
+ <p style="margin:0 0 6px;font-size:13.5px">${ADV[b[0]]}</p>${notes.map(n=>`<p style="margin:4px 0;font-size:12.5px;color:#a35c00">! ${n}</p>`).join("")}
+ <h3 style="margin-top:18px">What if…</h3><table><tbody>${rows(wi)}</tbody></table>
+ <h3 style="margin-top:16px">If it slips…</h3><table><tbody>${rows(late)}</tbody></table>
+ <h3 style="margin-top:16px">Handling (door opens)</h3>
+ <p class="sub" style="margin:2px 0 6px">Expected about ${m.toFixed(0)} opens (${pct(qh-ql)} range ${lo} to ${hi}). Opens travel with inspections and delays in the logger data; this shows association, not proof that opening a door causes failure.</p>
+ <table><tbody>${sc.map(([l,n])=>`<tr><td>${l} (${n} opens)</td><td style="text-align:right"><b>${pct(riskAt(r,n))}</b></td></tr>`).join("")}</tbody></table>${known}`}
+$$("#form input,#form select").forEach(e=>e.oninput=predict);
+$("#reset").onclick=()=>{$("#form").reset();predict()};predict();
+
+/* ---------- Information ---------- */
+$("#bandSub").textContent=`Thresholds from the model: review at ${pct(REV)}, high at ${pct(HI)}. The review threshold was picked so a missed failure costs ${ME.cost_ratio_fn_to_fp}x a false alarm.`;
+$("#bands").innerHTML=[["LOW","p-ok","below "+pct(REV),"Standard handling."],["MEDIUM","p-warn",pct(REV)+" to "+pct(HI),"Review before shipping. Shorten the trip, reduce hand-offs, upgrade packaging, add a logger."],["HIGH","p-bad",pct(HI)+" or more","Do not ship as planned. Change the plan first and add a logger with alarms."]].map(r=>`<tr><td><span class="pill ${r[1]}">${r[0]}</span></td><td style="white-space:nowrap">${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+const MI="Model input",SN="Sensor summary, known after the trip",NU="Not used by the model";
+const VARS=[["shipment_id","ID","Unique shipment code."],["transit_days",MI,"Door-to-door transit time in days."],["door_opens","Forecast and what-if","Times the container door was opened. Predicted by the door-opens model; not known before shipping."],
+["temp_mean_c",SN,"Mean logged temperature, °C."],["temp_max_c",SN,"Highest logged temperature, °C."],["temp_min_c",SN,"Lowest logged temperature, °C."],["temp_std_c",SN,"Standard deviation of logged temperature, °C."],
+["temp_recovery_rate",SN,"How quickly temperature returns to normal after a rise (inferred)."],["rh_mean",SN,"Mean relative humidity, as a fraction (0.5 = 50%)."],["rh_std",SN,"Standard deviation of relative humidity."],["rh_max",SN,"Peak relative humidity."],
+["package_type",MI,"Packaging category coded 0, 1 or 2. The data has no labels for the codes."],["product_volume_l",NU,"Product volume in litres. Used through fill_ratio."],["fill_ratio",MI,"Product volume ÷ container capacity, 0 to 1 (as assumed in predict_risk.py)."],
+["carrier_id",NU,"Carrier code, 0 to 11."],["origin_zone",NU,"Origin zone code, 0 to 5."],["dest_zone",NU,"Destination zone code, 0 to 5."],["leg_count",MI,"Number of transport legs or hand-offs, 1 to 3."],
+["sensor_gap_hours",NU,"Hours without sensor readings (inferred)."],["vibration_index",NU,"Vibration or rough-handling level (inferred)."],["feature_x1",NU,"Anonymous numeric feature."],["feature_x2",NU,"Anonymous numeric feature."],["feature_x3",NU,"Anonymous feature between 0 and 1."],
+["silent_failure","Target","1 if the shipment silently failed, 0 otherwise. This is what the model predicts."]];
+const CS=Object.fromEntries(D.colstats.map(r=>[r[0],r]));
+$("#vars").innerHTML=VARS.map(([n,ro,me])=>{const c=CS[n];return`<tr><td><b>${n}</b></td><td>${ro}</td><td>${me}</td><td>${c?c[1]:n=="silent_failure"?pct(D.rate,1):"–"}</td><td style="white-space:nowrap">${c?c[2]+" to "+c[3]:n=="silent_failure"?"0 or 1":"–"}</td></tr>`}).join("");
+
+/* ---------- Model & Dataset ---------- */
+const [tn,fp,fn,tp]=T.cm,pr=tp/(tp+fp),rc=tp/(tp+fn),mt=ME.metrics_test,mv=ME.versions;
+$("#modelSub").textContent=`Trained on ${fmt(T.train_n)} shipments and scored on ${fmt(T.n)} held-out shipments (${T.pos} silent failures). xgboost ${mv.xgboost}.`;
+$("#ds").innerHTML=[["Shipments",fmt(D.rows)],["Columns",D.cols],["Silent failure rate",pct(D.rate,1)],["Train / test split","80% / 20%, stratified"],["Missing values","temp_recovery_rate 64, rh_max 334"],["Model inputs","4 of 22 columns"]].map(r=>`<tr><td style="color:var(--mut)">${r[0]}</td><td style="text-align:right"><b>${r[1]}</b></td></tr>`).join("");
+const bp=ME.best_params;
+$("#mdesc").innerHTML=`<p style="margin:0 0 8px">Predicts silent-failure risk from four things known before shipping: transit time, legs, package type and fill ratio. Longer transit can never lower the risk (monotone constraint).</p><p style="margin:0 0 8px">Tuned with 40 random searches, 5-fold cross-validation and log-loss. The alert threshold was chosen from out-of-fold predictions.</p><p style="margin:0;color:var(--mut);font-size:12px">${bp.n_estimators} trees, depth ${bp.max_depth}, learning rate ${bp.learning_rate}, min child weight ${bp.min_child_weight}, lambda ${bp.reg_lambda}.</p>`;
+$("#metSub").textContent="Threshold "+REV.toFixed(2)+" for the classification figures";
+$("#metrics").innerHTML=kv([["ROC-AUC",mt.roc_auc.toFixed(3)],["PR-AUC",mt.pr_auc.toFixed(3)+` <span style="font-weight:400;color:var(--mut)">(base ${pct(T.pos/T.n)})</span>`],["Brier score",mt.brier.toFixed(3)],["Log-loss",mt.log_loss.toFixed(3)],["Precision",pct(pr,1)],["Recall",pct(rc,1)],["F1 score",pct(2*pr*rc/(pr+rc),1)],["Accuracy",pct((tp+tn)/T.n,1)],["Specificity",pct(tn/(tn+fp),1)]]);
+function xy(el,pts,xl,yl,ref,dots){
+ const W=420,H=320,l=44,b=36,t=10,r=10,X=v=>l+v*(W-l-r),Y=v=>t+(1-v)*(H-t-b);let g="";
+ for(let k=0;k<=4;k++){const v=k/4;g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${t}" y2="${H-b}" stroke="#eef2f8"/><line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef2f8"/><text x="${X(v)}" y="${H-b+15}" text-anchor="middle">${v.toFixed(2)}</text><text x="${l-6}" y="${Y(v)+4}" text-anchor="end">${v.toFixed(2)}</text>`}
+ g+=`<text x="${(l+W-r)/2}" y="${H-4}" text-anchor="middle">${xl}</text><text transform="translate(11 ${H/2}) rotate(-90)" text-anchor="middle">${yl}</text>`;
+ g+=ref==="diag"?`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="#aab5cb" stroke-dasharray="4 4"/>`:`<line x1="${l}" x2="${W-r}" y1="${Y(ref)}" y2="${Y(ref)}" stroke="#aab5cb" stroke-dasharray="4 4"/>`;
+ const path=pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join("");
+ $(el).innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${yl} versus ${xl}">${g}<path d="${path}" fill="none" stroke="#1a6cf0" stroke-width="2.5"/>${dots?pts.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="#1a6cf0"/>`).join(""):""}</svg>`}
+xy("#roc",T.roc,"False positive rate","True positive rate","diag");xy("#pr",T.pr,"Recall","Precision",T.pos/T.n);xy("#cal",T.cal,"Predicted risk","Actual failure rate","diag",true);
+$("#aucRoc").textContent="AUC = "+mt.roc_auc.toFixed(3)+" (dashed line is random guessing)";
+$("#aucPr").textContent="Average precision = "+mt.pr_auc.toFixed(3)+" (dashed line is the failure rate, "+pct(T.pos/T.n,1)+")";
+$("#cmSub").textContent="Counts on the test set at threshold "+REV.toFixed(2);
+$("#cm").innerHTML=`<div class="cm"><span></span><b>Predicted OK</b><b>Predicted failure</b>
+ <b>Actual OK</b><div class="c" style="background:#e2f6ec;color:#0c7a45">${tn}<br><small>true negative</small></div><div class="c" style="background:#fdf0dc;color:#a35c00">${fp}<br><small>false positive</small></div>
+ <b>Actual failure</b><div class="c" style="background:#fde5e8;color:#b3202f">${fn}<br><small>false negative</small></div><div class="c" style="background:#dbe8fd;color:#1a55b8">${tp}<br><small>true positive</small></div></div>`;
+$("#thr").innerHTML=T.table.map(r=>`<tr><td>${r[0].toFixed(2)}${r[0]==REV?" (chosen)":""}</td><td>${pct(r[1])}</td><td>${pct(r[2])}</td><td>${pct(r[3])}</td></tr>`).join("");
+const FL={transit_days:"Transit time",leg_count:"Transport legs",package_type:"Package type",fill_ratio:"Fill ratio"},im=Object.entries(T.imp);
+bars("#fi",im.map(([k,v])=>[FL[k]||k,v/im[0][1]*100,"#1a6cf0",pct(v)]));
+$("#dm").innerHTML=kv([["Door opens R²",DR.metrics_test.door_r2.toFixed(2)],["Door opens MAE",DR.metrics_test.door_mae.toFixed(1)+" opens"],["Risk given door opens, ROC-AUC",DR.metrics_test.risk_given_opens_auc.toFixed(3)],["Spread parameter (negative binomial)",DR.nb_dispersion_k.toFixed(2)]])+`<p class="sub" style="margin:10px 0 0">Door opens are not known before shipping, so the risk given opens is a what-if only.</p>`;
+
+/* ---------- About ---------- */
+$("#team").innerHTML=TEAM.map(m=>`<div class="card"><div class="av" aria-hidden="true">${m.name.split(" ").map(w=>w[0]).slice(0,2).join("")}</div><h2 style="font-size:17px">${m.name}</h2><p class="sub" style="margin:0 0 10px">${m.role}</p><table><tbody><tr><td style="color:var(--mut);padding-left:0">University</td><td><b>${m.uni}</b></td></tr><tr><td style="color:var(--mut);padding-left:0">Major</td><td><b>${m.major}</b></td></tr></tbody></table></div>`).join("");
+
+/* ---------- Router ---------- */
+function route(){const id=(location.hash||"#overview").slice(1),ok=$("#"+id)&&$("#"+id).classList.contains("page")?id:"overview";
+ $$(".page").forEach(p=>p.classList.toggle("on",p.id==ok));$$("aside a").forEach(a=>a.classList.toggle("on",a.hash=="#"+ok));scrollTo(0,0)}
+addEventListener("hashchange",route);route();
+</script>
+</body>
+</html>
