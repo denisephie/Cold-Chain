@@ -46,6 +46,37 @@ except Exception:
     HAS_DOOR = False
 
 
+# Version guard
+# The models are pickles. Loading them under library versions other than the ones they were
+# trained with can fail outright or, worse, score differently without saying so. The trained
+# versions are recorded in artifacts/*_meta.json.
+def check_versions(recorded, label):
+    import sklearn
+    import xgboost
+
+    running = {
+        "python": ".".join(str(n) for n in sys.version_info[:3]),
+        "sklearn": sklearn.__version__,
+        "xgboost": xgboost.__version__,
+        "pandas": pd.__version__,
+    }
+    off = [(k, recorded[k], running[k])
+           for k in recorded if k in running and recorded[k] != running[k]]
+    if off:
+        print(f"WARNING: {label} - trained with different versions than you are running:",
+              file=sys.stderr)
+        for name, trained, now in off:
+            print(f"  {name}: trained {trained}, running {now}", file=sys.stderr)
+        print("  Scores may not match the reported metrics. See README.md (Environment).\n",
+              file=sys.stderr)
+    return not off
+
+
+check_versions(meta.get("versions", {}), "risk_pipeline.joblib")
+if HAS_DOOR:
+    check_versions(door_meta.get("versions", {}), "door-opens models")
+
+
 # Scoring
 def band(p):
     if p >= HIGH_T:

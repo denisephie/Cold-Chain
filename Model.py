@@ -50,8 +50,25 @@ OPENS = "door_opens"
 RANDOM_STATE = 42
 TEST_SIZE = 0.20
 
-# A missed failure is assumed 5x worse than a false alarm
-# a lower COST_FN gives a higher threshold, so fewer shipments are flagged
+# COST_FN says how much worse a missed failure is than a false alarm. At 3.5, letting one bad
+# shipment through is treated as 3.5 times as costly as needlessly flagging a good one.
+#
+# The value itself has not changed. The comment here used to say "5x" while the code said 3.5;
+# the comment was simply wrong, and this corrects it.
+#
+# What it does: nothing during training. It only picks the alert threshold afterwards, by
+# sliding along a fixed precision/recall curve - so raising it catches more failures and flags
+# more shipments, and lowering it does the reverse. It can never improve both at once. For a
+# well-calibrated model the threshold lands near 1/(1+ratio), and 3.5 gives 0.23.
+#
+# Why 3.5 and not something else (checked 2026-09-22 on the held-out test set): 2.5 scored
+# slightly better on F1 (0.560 vs 0.548), but that gap is inside the noise - bootstrapping put
+# it at +0.012 with a 95% range of -0.009 to +0.032, which includes zero. Meanwhile 3.5 catches
+# noticeably more real failures: 78% vs 71%, or 69 missed instead of 92. Catching those extra
+# failures costs roughly 4-5 more shipments flagged each.
+#
+# So this is a business decision, not something to tune. Set it from what a spoiled load and a
+# false alarm actually cost you, not from F1.
 COST_FN = 3.5
 COST_FP = 1.0
 HIGH_RISK_CUTOFF = 0.50
