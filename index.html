@@ -168,7 +168,7 @@ button.ghost:hover{background:var(--sunken);color:var(--ink)}
 .cb li small{color:var(--ink-3);font-size:11px;margin-left:auto;flex:none}
 .cb li[aria-selected=true]{background:#e9f1fc}
 .cb li.none{color:var(--ink-3);cursor:default;display:block}
-.cb input[aria-invalid=true]{border-color:var(--bad);background:#fffbfb}
+.cb input[aria-invalid=true],input[aria-invalid=true]{border-color:var(--bad);background:#fffbfb}
 .mark{background:#fdf0c4;border-radius:2px;padding:0 1px}
 
 /* ---------- messages ---------- */
@@ -362,7 +362,7 @@ code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;borde
       <div class="fieldset" style="margin-top:24px"><h3>Route and packing</h3><p class="sub" style="margin-bottom:14px">The four values the risk model is trained on.</p></div>
       <div class="f">
         <div class="full"><label for="transit">Planned transit time (door to door) <span class="rv" id="v-transit"></span></label><input type="range" id="transit" min="0.5" max="17.5" step="0.5" value="4"></div>
-        <div><label for="legs">Transport legs / hand-offs</label><select id="legs"><option>1</option><option selected>2</option><option>3</option></select></div>
+        <div><label for="legs">Transport legs / hand-offs</label><input type="number" id="legs" min="1" step="1" value="2" inputmode="numeric" placeholder="e.g. 2"></div>
         <div><label for="pkg">Package type</label><select id="pkg"><option value="0">Package type 0</option><option value="1">Package type 1</option><option value="2">Package type 2</option></select></div>
         <div class="full"><label for="fill">Fill ratio (product volume ÷ container capacity) <span class="rv" id="v-fill"></span></label><input type="range" id="fill" min="0.1" max="1" step="0.01" value="0.72"></div>
         <div class="full"><label for="opens">Known or planned door opens (optional, e.g. customs check)</label><input type="number" id="opens" min="0" max="60" step="1" placeholder="Leave empty to skip"></div>
@@ -793,10 +793,16 @@ function validate(){
  const miss=[];
  [[cFrom,"Country From"],[cTo,"Country To"],[cFood,"Food Type"]].forEach(([c,n])=>{
   const bad=!c.value;c.flag(bad);if(bad)miss.push(n)});
- $("#formErr").innerHTML=miss.length
-  ?`<p class="err">Select ${miss.map(m=>`<b>${m}</b>`).join(", ")} from the list before predicting.</p>`:"";
- if(miss.length){const first=[cFrom,cTo,cFood].find(c=>!c.value);first.el.focus()}
- return !miss.length}
+ // Legs is typed now, so it can arrive empty, fractional or negative.
+ const legEl=$("#legs"),lv=legEl.value.trim(),ln=Number(lv);
+ const legBad=lv===""||!Number.isFinite(ln)||!Number.isInteger(ln)||ln<1;
+ legEl.setAttribute("aria-invalid",legBad?"true":"false");
+ const msgs=[];
+ if(miss.length)msgs.push(`Select ${miss.map(m=>`<b>${m}</b>`).join(", ")} from the list before predicting.`);
+ if(legBad)msgs.push(`<b>Transport legs / hand-offs</b> must be a whole number, 1 or more.`);
+ $("#formErr").innerHTML=msgs.map(m=>`<p class="err">${m}</p>`).join("");
+ if(msgs.length){const first=[cFrom,cTo,cFood].find(c=>!c.value);(first?first.el:legEl).focus()}
+ return !msgs.length}
 
 function predict(){
  if(!validate())return;
@@ -805,6 +811,7 @@ function predict(){
  const notes=[];
  if(r.transit_days<RNG.transit_days[0]||r.transit_days>RNG.transit_days[1])notes.push(`Transit time is outside the training range (${RNG.transit_days[0]} to ${RNG.transit_days[1]} days). The prediction is an extrapolation.`);
  if(r.fill_ratio<RNG.fill_ratio[0])notes.push(`Fill ratio is below the training range (${RNG.fill_ratio[0].toFixed(2)} to 1). The prediction is an extrapolation.`);
+ if(r.leg_count>RNG.leg_count[1])notes.push(`More transport legs than any training shipment (${RNG.leg_count[0]} to ${RNG.leg_count[1]}). The prediction is an extrapolation.`);
  const rows=a=>a.map(([l,q])=>`<tr><td>${l}</td><td class="num"><b>${pct(q)}</b></td><td class="num" style="color:${q<p-.005?"var(--ok-ink)":q>p+.005?"var(--bad-ink)":"var(--ink-3)"}">${q-p>0?"+":""}${((q-p)*100).toFixed(0)}%</td></tr>`).join("");
  const wi=[];[1,2].forEach(d=>{if(r.transit_days-d>=RNG.transit_days[0])wi.push([`Transit ${d} day${d>1?"s":""} shorter`,risk({...r,transit_days:r.transit_days-d})])});
  if(r.leg_count>1)wi.push(["One fewer leg / hand-off",risk({...r,leg_count:r.leg_count-1})]);
@@ -836,6 +843,7 @@ $("#btnReset").onclick=()=>{
  // so a control with id="reset" would shadow the reset() method.
  HTMLFormElement.prototype.reset.call($("#form"));
  [cFrom,cTo,cFood].forEach(c=>c.clear());
+ $("#legs").setAttribute("aria-invalid","false");
  $("#formErr").innerHTML="";labels();
  delete $("#result").dataset.done;stale=false;$("#result").innerHTML=PLACEHOLDER};
 
