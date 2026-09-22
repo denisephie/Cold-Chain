@@ -7,122 +7,371 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#0b2a5b;--blue:#1a6cf0;--bg:#f4f7fb;--card:#fff;--line:#e3e9f2;--tx:#0f1b33;--mut:#66748f;--ok:#12a05c;--warn:#e8890c;--bad:#dc3a4b}
+/* ------------------------------------------------------------------
+   Design tokens.
+   Series and status hues come from a validated palette: categorical
+   slots (blue / aqua / orange) clear the CVD and normal-vision floors
+   on a white card, and status hues are reserved for good/warn/critical
+   so a series colour never impersonates a state.
+   ------------------------------------------------------------------ */
+:root{
+ --navy:#0e2340;--navy-2:#17324f;--navy-3:#23405f;
+ --page:#f6f7f9;--card:#fff;--sunken:#f3f5f8;
+ --ink:#10151c;--ink-2:#4a5463;--ink-3:#79838f;
+ --line:#e3e7ec;--line-2:#eef1f5;--grid:#edeff3;--axis:#d3d9e0;
+ --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;
+ --ok:#0ca30c;--warn:#fab219;--bad:#d03b3b;
+ --ok-ink:#0a6d21;--warn-ink:#8a5a00;--bad-ink:#a32020;
+ --ok-bg:#e9f5ea;--warn-bg:#fdf3e1;--bad-bg:#fbeaea;
+ --cold:#2a78d6;--cool:#86b6ef;--mid:#b9bfc9;--warm:#ec835a;--hot:#d03b3b;
+ --r:8px;--r-sm:5px;
+ --sh:0 1px 2px rgba(16,21,28,.05),0 1px 3px rgba(16,21,28,.04);
+ --focus:0 0 0 3px rgba(42,120,214,.18);
+}
 *{box-sizing:border-box}
-body{margin:0;font:14px/1.5 Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
-aside{position:fixed;inset:0 auto 0 0;width:200px;background:var(--navy);color:#fff;padding:18px 10px;display:flex;flex-direction:column;gap:4px}
-.logo{font-weight:700;font-size:16px;padding:6px 12px 18px;display:flex;gap:10px;align-items:center}
-aside a{color:#c9d6ee;text-decoration:none;padding:10px 12px;border-radius:6px;font-weight:500}
-aside a:hover{background:#12377a}
-aside a.on{background:var(--blue);color:#fff}
-aside a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #7fb0ff;outline-offset:2px}
-.live{margin-top:auto;font-size:12px;color:#9fb3d9;padding:0 12px}
-.live:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#2ecc71;margin-right:8px}
-main{margin-left:200px;padding:28px 32px 48px;max-width:1300px}
-h1{font-size:24px;margin:0 0 2px}h2{font-size:15px;margin:0 0 2px}h3{font-size:13px;margin:0}
-.sub{color:var(--mut);margin:0 0 20px}
-.page{display:none}.page.on{display:block}
-.grid{display:grid;gap:16px}
-.g5{grid-template-columns:repeat(5,1fr)}.g2{grid-template-columns:1.6fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.e2{grid-template-columns:1fr 1fr}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
-.card p.sub{margin:0 0 12px;font-size:12.5px}
-.kpi small{color:var(--mut);font-size:12px}.kpi b{display:block;font-size:26px;line-height:1.2;margin:2px 0}.kpi span{font-size:12px;color:var(--mut)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:14px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+ background:var(--page);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+/* ---------- sidebar ---------- */
+aside{position:fixed;inset:0 auto 0 0;width:216px;background:var(--navy);color:#fff;
+ padding:20px 12px 16px;display:flex;flex-direction:column;gap:2px;z-index:50}
+.logo{display:flex;gap:10px;align-items:center;padding:2px 10px 22px;font-weight:650;
+ font-size:14.5px;letter-spacing:-.01em;line-height:1.25}
+.logo b{display:block;font-weight:650}
+.logo span{color:#8fa6c4;font-weight:500;font-size:11px;letter-spacing:.06em;
+ text-transform:uppercase;display:block;margin-top:2px}
+.navlabel{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#6f88a8;
+ font-weight:600;padding:14px 10px 6px}
+aside a{position:relative;color:#c2d0e4;text-decoration:none;padding:8px 10px;border-radius:var(--r-sm);
+ font-weight:500;font-size:13.5px;transition:background .12s,color .12s}
+aside a:hover{background:var(--navy-2);color:#fff}
+aside a.on{background:var(--navy-3);color:#fff;font-weight:600}
+aside a.on:before{content:"";position:absolute;left:-12px;top:6px;bottom:6px;width:3px;
+ border-radius:0 2px 2px 0;background:var(--s1)}
+.live{margin-top:auto;font-size:11.5px;color:#8fa6c4;padding:10px 10px 0;border-top:1px solid #1d3855;
+ display:flex;align-items:center;gap:7px}
+.live i{width:6px;height:6px;border-radius:50%;background:#2ecc71;flex:none;
+ box-shadow:0 0 0 3px rgba(46,204,113,.18)}
+:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+aside a:focus-visible{outline-color:#8fbcff}
+
+/* ---------- layout ---------- */
+main{margin-left:216px;padding:30px 36px 56px;max-width:1380px}
+.page{display:none}.page.on{display:block;animation:in .18s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+h1{font-size:22px;font-weight:650;letter-spacing:-.015em;margin:0 0 4px}
+h2{font-size:14px;font-weight:600;letter-spacing:-.005em;margin:0}
+h3{font-size:12.5px;font-weight:600;margin:0;letter-spacing:-.003em}
+.lede{color:var(--ink-2);margin:0 0 22px;font-size:13.5px;max-width:74ch}
+.sub{color:var(--ink-3);margin:2px 0 0;font-size:12.5px}
+.grid{display:grid;gap:14px}
+.g5{grid-template-columns:repeat(5,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.e2{grid-template-columns:1fr 1fr}
+.top{align-items:start}
+.g2{grid-template-columns:1.6fr 1fr}
+.mt{margin-top:14px}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+ padding:16px 18px;min-width:0;box-shadow:var(--sh)}
+.ch{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;
+ margin:0 0 14px}
+.ch>div:first-child{min-width:0}
+.card p.sub{margin:3px 0 0}
+
+/* ---------- stat tiles ---------- */
+.kpi{padding:14px 16px}
+.kpi small{display:block;font-size:10.5px;font-weight:600;letter-spacing:.07em;
+ text-transform:uppercase;color:var(--ink-3)}
+.kpi b{display:block;font-size:25px;font-weight:650;line-height:1.15;margin:7px 0 3px;
+ letter-spacing:-.02em}
+.kpi b.sm{font-size:16px;font-weight:600;letter-spacing:-.005em;line-height:1.35;margin-top:9px}
+.kpi span{font-size:11.5px;color:var(--ink-3);display:block}
+
+/* ---------- tables ---------- */
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;color:var(--mut);font-weight:500;font-size:12px;padding:8px 8px;border-bottom:1px solid var(--line)}
-td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:last-child td{border:0}
-.tw{overflow-x:auto}
-.pill{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
-.p-ok{background:#e2f6ec;color:#0c7a45}.p-warn{background:#fdf0dc;color:#a35c00}.p-bad{background:#fde5e8;color:#b3202f}
-.bar{height:8px;border-radius:99px;background:#eaeff7;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px}
-.row{display:grid;grid-template-columns:140px 1fr 56px;gap:10px;align-items:center;margin:10px 0;font-size:12.5px}
-svg text{font:11px Inter,sans-serif;fill:#66748f}
-.legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-top:6px;flex-wrap:wrap}
-.legend i{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
-label{display:block;font-size:12px;color:var(--mut);margin:0 0 4px;font-weight:500}
-select,input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #cfd8e6;border-radius:6px;background:#fff;font:inherit;color:var(--tx)}
-input[type=range]{width:100%;accent-color:var(--blue)}
+th{text-align:left;color:var(--ink-3);font-weight:600;font-size:10.5px;letter-spacing:.07em;
+ text-transform:uppercase;padding:0 10px 8px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line-2);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--sunken)}
+th:first-child,td:first-child{padding-left:0}
+th:last-child,td:last-child{padding-right:0}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tw{overflow-x:auto;margin:0 -2px;padding:0 2px}
+
+/* ---------- pills, tags, bars ---------- */
+.pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+ text-transform:uppercase;padding:3px 7px;border-radius:4px;white-space:nowrap}
+.p-ok{background:var(--ok-bg);color:var(--ok-ink)}
+.p-warn{background:var(--warn-bg);color:var(--warn-ink)}
+.p-bad{background:var(--bad-bg);color:var(--bad-ink)}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;
+ background:var(--sunken);color:var(--ink-2);white-space:nowrap;border:1px solid var(--line)}
+.bar{height:6px;border-radius:3px;background:var(--line-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;transition:width .3s ease}
+.row{display:grid;grid-template-columns:150px 1fr 54px;gap:12px;align-items:center;
+ margin:9px 0;font-size:12.5px}
+.row b{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.row span{color:var(--ink-2)}
+
+/* ---------- charts ---------- */
+.chart{position:relative}
+svg text{font:11px Inter,system-ui,sans-serif;fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink-2);margin-top:8px;flex-wrap:wrap;
+ align-items:center}
+.legend i{display:inline-block;width:10px;height:2px;border-radius:1px;vertical-align:middle;
+ margin-right:6px}
+.legend .sw{width:9px;height:9px;border-radius:2px}
+.tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .1s;z-index:10;
+ background:var(--ink);color:#fff;border-radius:var(--r-sm);padding:6px 9px;font-size:11.5px;
+ line-height:1.45;white-space:nowrap;box-shadow:0 4px 12px rgba(16,21,28,.18);
+ font-variant-numeric:tabular-nums;transform:translate(-50%,-100%)}
+.tip b{font-weight:650}
+.tip em{font-style:normal;color:#aab6c6;display:block;font-size:10.5px;letter-spacing:.04em;
+ text-transform:uppercase;margin-bottom:1px}
+
+/* ---------- forms ---------- */
+label{display:block;font-size:11.5px;color:var(--ink-2);margin:0 0 5px;font-weight:600}
+.req:after{content:" *";color:var(--bad)}
+select,input[type=text],input[type=number]{width:100%;padding:8px 10px;border:1px solid #d4dae1;
+ border-radius:var(--r-sm);background:#fff;font:inherit;font-size:13px;color:var(--ink);
+ transition:border-color .12s,box-shadow .12s}
+select:focus,input[type=text]:focus,input[type=number]:focus{outline:0;border-color:var(--s1);
+ box-shadow:var(--focus)}
+select{cursor:pointer}
+input[type=range]{width:100%;accent-color:var(--s1)}
 .f{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
 .f .full{grid-column:1/-1}
-.rv{float:right;color:var(--tx);font-weight:600}
-button.go{background:var(--blue);color:#fff;border:0;border-radius:6px;padding:10px 20px;font:600 14px Inter,sans-serif;cursor:pointer}
-button.go:hover{background:#1559c8}
-button.ghost{background:#fff;border:1px solid #cfd8e6;border-radius:6px;padding:10px 16px;font:500 14px Inter,sans-serif;cursor:pointer;margin-left:8px}
-.big{font-size:44px;font-weight:700;line-height:1}
-.note{background:#fff8e6;border:1px solid #f3dfa5;color:#7a5b00;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:16px}
-.ev{list-style:none;padding:0;margin:0}.ev li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
-.ev li:last-child{border:0}.ev time{color:var(--mut);width:44px;flex:none;font-variant-numeric:tabular-nums}
-.dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none}
-.cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;text-align:center;font-size:12px;align-items:center}
-.cm div.c{padding:18px 6px;border-radius:6px;font-weight:700;font-size:20px}
-.av{width:72px;height:72px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:24px;font-weight:700;margin-bottom:12px}
-code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
-@media(max-width:1000px){.g5{grid-template-columns:repeat(2,1fr)}.g2,.g3,.e2{grid-template-columns:1fr}}
-@media(max-width:760px){aside{position:static;width:auto;flex-direction:row;overflow-x:auto;padding:8px}.logo,.live{display:none}aside a{white-space:nowrap}main{margin:0;padding:20px 16px}.f{grid-template-columns:1fr}}
+.rv{float:right;color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+.fieldset{margin:0 0 6px}
+.fieldset h3{color:var(--ink);margin-bottom:2px}
+button.go{background:var(--s1);color:#fff;border:0;border-radius:var(--r-sm);padding:9px 18px;
+ font:600 13.5px Inter,system-ui,sans-serif;cursor:pointer;transition:background .12s}
+button.go:hover{background:#2367b8}
+button.ghost{background:#fff;border:1px solid #d4dae1;border-radius:var(--r-sm);padding:9px 15px;
+ font:600 13.5px Inter,system-ui,sans-serif;cursor:pointer;margin-left:8px;color:var(--ink-2);
+ transition:background .12s,color .12s}
+button.ghost:hover{background:var(--sunken);color:var(--ink)}
+
+/* ---------- combobox ---------- */
+.cb{position:relative}
+.cb ul{position:absolute;z-index:40;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;
+ list-style:none;background:#fff;border:1px solid var(--line);border-radius:var(--r);
+ box-shadow:0 8px 24px rgba(16,21,28,.12);max-height:256px;overflow:auto}
+.cb ul[hidden]{display:none}
+.cb li{padding:7px 9px;border-radius:var(--r-sm);cursor:pointer;font-size:13px;display:flex;
+ gap:10px;align-items:baseline}
+.cb li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb li small{color:var(--ink-3);font-size:11px;margin-left:auto;flex:none}
+.cb li[aria-selected=true]{background:#e9f1fc}
+.cb li.none{color:var(--ink-3);cursor:default;display:block}
+.cb input[aria-invalid=true],input[aria-invalid=true]{border-color:var(--bad);background:#fffbfb}
+.mark{background:#fdf0c4;border-radius:2px;padding:0 1px}
+
+/* ---------- messages ---------- */
+.note{background:var(--warn-bg);border:1px solid #f3dfa5;color:var(--warn-ink);
+ border-radius:var(--r-sm);padding:9px 12px;font-size:12.5px;margin:0 0 14px}
+.fail{background:var(--bad-bg);border:1px solid #f0c4c4;color:var(--bad-ink);
+ border-radius:var(--r-sm);padding:10px 13px;font-size:12.5px}
+.err{color:var(--bad-ink);font-size:12.5px;margin:10px 0 0}
+.ph{color:var(--ink-3);font-size:13px;margin:0}
+.src{font-size:11px;color:var(--ink-3);margin:12px 0 0;padding-top:10px;
+ border-top:1px solid var(--line-2)}
+.src a{color:var(--ink-3)}
+.skel{background:linear-gradient(90deg,var(--line-2),var(--sunken),var(--line-2));
+ background-size:200% 100%;animation:sh 1.3s linear infinite;border-radius:4px;height:11px}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* ---------- overview specifics ---------- */
+.toolbar{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.toolbar .cb{min-width:250px;flex:1 1 250px}
+.stamp{font-size:11.5px;color:var(--ink-3);margin:0 0 9px;margin-left:auto;
+ font-variant-numeric:tabular-nums}
+.wx{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.wx .ic{font-size:42px;line-height:1}
+.wx .tmp{font-size:36px;font-weight:650;line-height:1;letter-spacing:-.025em}
+.ev{list-style:none;padding:0;margin:0}
+.ev li{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+.ev li:last-child{border:0;padding-bottom:0}
+.dot{width:7px;height:7px;border-radius:50%;margin-top:6px;flex:none}
+.ev a{color:var(--s1);text-decoration:none}
+.ev a:hover{text-decoration:underline}
+
+/* ---------- result panel ---------- */
+.hero{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.big{font-size:42px;font-weight:650;line-height:1;letter-spacing:-.03em}
+.divider{border:0;border-top:1px solid var(--line-2);margin:20px 0 0}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;
+ border-bottom:1px solid var(--line-2);font-size:13px;align-items:baseline}
+.kv:last-child{border:0}
+.kv span{white-space:nowrap;color:var(--ink-2)}
+.kv b{text-align:right;font-variant-numeric:tabular-nums;min-width:0}
+.pairs td:first-child{white-space:nowrap;color:var(--ink-3);width:1%}
+.pairs td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- confusion matrix ---------- */
+.cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:5px;text-align:center;font-size:11.5px;
+ align-items:center}
+.cm b{font-weight:600;color:var(--ink-3);font-size:10.5px;letter-spacing:.06em;
+ text-transform:uppercase}
+.cm div.c{padding:16px 6px;border-radius:var(--r-sm);font-weight:650;font-size:19px;
+ font-variant-numeric:tabular-nums}
+.cm div.c small{display:block;font-size:10px;font-weight:500;letter-spacing:.04em;
+ text-transform:uppercase;margin-top:3px;opacity:.75}
+
+/* ---------- about ---------- */
+.member h2{font-size:16px;font-weight:650;letter-spacing:-.012em;margin-bottom:12px;
+ padding-bottom:12px;border-bottom:1px solid var(--line-2)}
+code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;border-radius:4px;
+ font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+/* ---------- responsive ---------- */
+@media(max-width:1180px){.g5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1000px){.g5{grid-template-columns:repeat(2,1fr)}
+ .g2,.g3,.e2{grid-template-columns:1fr}}
+@media(max-width:760px){
+ aside{position:static;width:auto;flex-direction:row;overflow-x:auto;padding:8px;gap:4px;
+  align-items:center}
+ .logo,.live,.navlabel{display:none}
+ aside a{white-space:nowrap;font-size:13px}
+ aside a.on:before{display:none}
+ main{margin:0;padding:20px 16px 40px}
+ .f{grid-template-columns:1fr}
+ .g5{grid-template-columns:1fr 1fr}
+ .row{grid-template-columns:110px 1fr 46px}
+ h1{font-size:19px}
+}
 </style>
 </head>
 <body>
 <aside aria-label="Main">
-  <div class="logo">❄️ <span>ColdChain<br>Monitor</span></div>
+  <div class="logo">❄️ <div><b>ColdChain</b><span>Monitor</span></div></div>
+  <div class="navlabel">Live</div>
   <a href="#overview">Overview</a>
+  <div class="navlabel">Decide</div>
   <a href="#predict">Shipment Prediction</a>
+  <div class="navlabel">Reference</div>
   <a href="#info">Information</a>
   <a href="#model">Model &amp; Dataset</a>
   <a href="#about">About Us</a>
-  <div class="live">Monitoring system online</div>
+  <div class="live"><i></i>Monitoring system online</div>
 </aside>
 <main>
 
 <!-- OVERVIEW -->
 <section class="page" id="overview">
   <h1>Cold Chain Overview</h1>
-  <p class="sub">Temperature, humidity, door opens and silent failures across all shipments in the dataset.</p>
-  <div class="note">The dataset has no timestamps, so this page summarises every shipment rather than "today". Live "today" figures need a data feed with dates.</div>
-  <div class="grid g5" id="kpis"></div>
-  <div class="grid e2" style="margin-top:16px">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
-        <div><h2>Readings: no failure vs silent failure</h2><p class="sub">Share of shipments in each group, values clipped to the 1st–99th percentile</p></div>
-        <select id="hvar" style="width:200px" aria-label="Variable"></select>
+  <p class="lede">Live conditions and active hazards, read straight from the Open-Meteo and GDACS APIs. For shipment scoring, go to Shipment Prediction.</p>
+
+  <div class="card">
+    <div class="toolbar">
+      <div class="cb" id="cb-ovc">
+        <label for="ovc" >Location</label>
+        <input type="text" id="ovc" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="ovc-list" autocomplete="off" placeholder="Type a country, e.g. ind">
+        <ul id="ovc-list" role="listbox" aria-label="Country suggestions" hidden></ul>
       </div>
-      <div id="hist"></div>
-      <div class="legend"><span><i style="border-color:#1a6cf0"></i>No failure</span><span><i style="border-color:#dc3a4b"></i>Silent failure</span></div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
-        <div><h2>Silent-failure rate</h2><p class="sub">Red is well above average, green well below</p></div>
-        <select id="gvar" style="width:160px" aria-label="Group by"></select>
-      </div>
-      <div id="gbars"></div>
-      <p class="sub" id="gavg" style="margin-top:12px"></p>
+      <button class="go" id="ovRefresh" type="button">Refresh</button>
+      <p class="stamp" id="ovStamp"></p>
     </div>
   </div>
-  <div class="grid e2" style="margin-top:16px">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
-        <div><h2>Shipment explorer</h2><p class="sub">200 random shipments from the dataset</p></div>
-        <select id="exSel" style="width:150px" aria-label="Shipment"></select>
-      </div>
-      <div id="exOut"></div>
+
+  <div id="ovErr" class="mt"></div>
+
+  <div class="card mt">
+    <div class="ch">
+      <div><h2 id="ovWhere">Current conditions</h2><p class="sub" id="ovWhen">Loading from Open-Meteo…</p></div>
+      <span class="tag" id="ovDay"></span>
     </div>
-    <div class="card"><h2>Signals in the data</h2><p class="sub">Correlation with silent failure. Most are readings taken during the trip, so they cannot be known before shipping.</p><div id="corr"></div></div>
+    <div id="ovNow"></div>
+  </div>
+
+  <div class="grid g5 mt" id="ovKpis"></div>
+
+  <div class="grid e2 mt">
+    <div class="card">
+      <div class="ch"><div><h2>Next 48 hours</h2><p class="sub">Temperature and relative humidity at the selected location. Two panels on a shared time axis &mdash; the two measures do not share a scale.</p></div></div>
+      <h3 style="color:var(--ink-2)">Temperature &deg;C</h3>
+      <div class="chart" id="ovHourlyT"></div>
+      <h3 style="color:var(--ink-2);margin-top:14px">Relative humidity %</h3>
+      <div class="chart" id="ovHourlyR"></div>
+      <p class="src">Source: Open-Meteo Forecast API</p>
+    </div>
+    <div class="card">
+      <div class="ch"><div><h2>Seven-day outlook</h2><p class="sub">Daily highs and lows, rainfall and peak wind</p></div></div>
+      <div class="tw"><table><thead><tr><th>Day</th><th>Conditions</th><th class="num">High / low</th><th class="num">Rain</th><th class="num">Wind</th></tr></thead><tbody id="ovDaily"></tbody></table></div>
+      <p class="src">Source: Open-Meteo Forecast API</p>
+    </div>
+  </div>
+
+  <div class="grid e2 mt">
+    <div class="card">
+      <div class="ch"><div><h2>Ambient exposure, next 7 days</h2><p class="sub">Hours the outside air sits in each band. Useful for judging how hard a reefer or a passive box has to work on the ground.</p></div></div>
+      <div id="ovExposure"></div>
+      <p class="src">Derived from Open-Meteo hourly temperature and humidity</p>
+    </div>
+    <div class="card">
+      <div class="ch"><div><h2>Active hazards here</h2><p class="sub" id="ovLocalSub">GDACS events affecting the selected country</p></div></div>
+      <div id="ovLocal"></div>
+      <p class="src">Source: GDACS event list API</p>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="ch">
+      <div><h2>Global disaster alerts</h2><p class="sub">Current GDACS events worldwide. Orange and red alerts are the ones that close roads, ports and airports.</p></div>
+      <select id="ovFilter" style="width:210px" aria-label="Filter events">
+        <option value="all">All alert levels</option>
+        <option value="Red">Red only</option>
+        <option value="Orange">Orange and red</option>
+      </select>
+    </div>
+    <div class="grid g5" id="ovAlertKpis" style="margin:4px 0 16px"></div>
+    <div class="tw"><table><thead><tr><th>Alert</th><th>Type</th><th>Event</th><th>Country</th><th>Severity</th><th class="num">Started</th></tr></thead><tbody id="ovEvents"></tbody></table></div>
+    <p class="src">Source: GDACS (Global Disaster Alert and Coordination System), <a href="https://www.gdacs.org/" target="_blank" rel="noopener">gdacs.org</a></p>
   </div>
 </section>
 
 <!-- PREDICT -->
 <section class="page" id="predict">
   <h1>Shipment Prediction</h1>
-  <p class="sub">Estimate the chance of a silent failure before the shipment leaves. Runs in your browser.</p>
-  <div class="grid e2">
+  <p class="lede">Describe the shipment, then press Predict. The model runs in your browser; nothing is sent anywhere.</p>
+  <div class="grid e2 top">
     <form class="card" id="form" onsubmit="return false">
+      <div class="fieldset"><h3>Your shipment</h3><p class="sub" style="margin-bottom:14px">Origin, destination and food type are required.</p></div>
+      <div class="f">
+        <div class="cb full" id="cb-from">
+          <label for="from" class="req">Country From</label>
+          <input type="text" id="from" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="from-list" autocomplete="off" placeholder="Type to search, e.g. ind">
+          <ul id="from-list" role="listbox" aria-label="Origin country suggestions" hidden></ul>
+        </div>
+        <div class="cb full" id="cb-to">
+          <label for="to" class="req">Country To</label>
+          <input type="text" id="to" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="to-list" autocomplete="off" placeholder="Type to search, e.g. neth">
+          <ul id="to-list" role="listbox" aria-label="Destination country suggestions" hidden></ul>
+        </div>
+        <div class="cb full" id="cb-food">
+          <label for="food" class="req">Food Type</label>
+          <input type="text" id="food" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="food-list" autocomplete="off" placeholder="Type a food or category, e.g. cheese, seafood">
+          <ul id="food-list" role="listbox" aria-label="Food type suggestions" hidden></ul>
+        </div>
+      </div>
+
+      <div class="fieldset" style="margin-top:24px"><h3>Route and packing</h3><p class="sub" style="margin-bottom:14px">The four values the risk model is trained on.</p></div>
       <div class="f">
         <div class="full"><label for="transit">Planned transit time (door to door) <span class="rv" id="v-transit"></span></label><input type="range" id="transit" min="0.5" max="17.5" step="0.5" value="4"></div>
-        <div><label for="legs">Transport legs / hand-offs</label><select id="legs"><option>1</option><option selected>2</option><option>3</option></select></div>
+        <div><label for="legs">Transport legs / hand-offs</label><input type="number" id="legs" min="1" step="1" value="2" inputmode="numeric" placeholder="e.g. 2"></div>
         <div><label for="pkg">Package type</label><select id="pkg"><option value="0">Package type 0</option><option value="1">Package type 1</option><option value="2">Package type 2</option></select></div>
         <div class="full"><label for="fill">Fill ratio (product volume ÷ container capacity) <span class="rv" id="v-fill"></span></label><input type="range" id="fill" min="0.1" max="1" step="0.01" value="0.72"></div>
         <div class="full"><label for="opens">Known or planned door opens (optional, e.g. customs check)</label><input type="number" id="opens" min="0" max="60" step="1" placeholder="Leave empty to skip"></div>
       </div>
-      <div style="margin-top:20px"><button class="ghost" id="reset" type="button" style="margin:0">Reset</button></div>
+      <div style="margin-top:20px;display:flex;align-items:center">
+        <button class="go" id="btnPredict" type="button">Predict</button>
+        <button class="ghost" id="btnReset" type="button">Reset</button>
+      </div>
+      <div id="formErr" aria-live="polite"></div>
     </form>
     <div class="card" id="result" aria-live="polite"></div>
   </div>
@@ -131,38 +380,39 @@ code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
 <!-- INFORMATION -->
 <section class="page" id="info">
   <h1>Information</h1>
-  <p class="sub">How to use the tool, and what every variable in the dataset means.</p>
+  <p class="lede">How to read the tool and what the risk bands mean. Column-by-column definitions live on <a href="#model">Model &amp; Dataset</a>.</p>
   <div class="grid e2">
-    <div class="card"><h2>How to use it</h2><p class="sub">Three steps</p>
+    <div class="card"><h2>How to use it</h2><p class="sub">Four steps</p>
       <ol style="padding-left:18px;margin:0;line-height:1.8">
-        <li>Open <b>Shipment Prediction</b> and enter transit time, number of legs, package type and fill ratio. The result updates as you type.</li>
-        <li>Read the risk and its band. Then check <i>What if</i> to see how a shorter trip, fewer hand-offs or other packaging changes it.</li>
-        <li>Optionally enter a known number of door opens to see the risk for that handling.</li>
+        <li>Open <b>Shipment Prediction</b> and pick <b>Country From</b>, <b>Country To</b> and <b>Food Type</b>. Start typing and choose from the list — typing <code>ind</code> offers India and Indonesia.</li>
+        <li>Set transit time, number of legs, package type and fill ratio.</li>
+        <li>Press <b>Predict</b>. Nothing is scored until you do, so you can change your mind freely while filling the form.</li>
+        <li>Read the risk band, the shelf-life check for your food type, then <i>What if</i> to see how a shorter trip, fewer hand-offs or other packaging changes it.</li>
       </ol>
-      <p class="sub" style="margin:14px 0 0">The model only uses four inputs known before shipping. Sensor readings such as temperature and humidity are only known after the trip, so they are not model inputs.</p></div>
+      <p class="sub" style="margin:14px 0 0">The risk model only uses four inputs known before shipping. Sensor readings such as temperature and humidity are only known after the trip, so they are not model inputs — for live weather and hazards, use the <b>Overview</b> page, which reads Open-Meteo and GDACS directly.</p></div>
     <div class="card"><h2>Risk bands</h2><p class="sub" id="bandSub"></p>
       <table><tbody id="bands"></tbody></table></div>
   </div>
-  <div class="card" style="margin-top:16px"><h2>Variables in the dataset</h2><p class="sub">Descriptions marked <i>inferred</i> come from the column name. Please confirm them against your data dictionary.</p>
-    <div class="tw"><table><thead><tr><th>Variable</th><th>Role</th><th>Meaning</th><th>Mean</th><th>Range</th></tr></thead><tbody id="vars"></tbody></table></div></div>
 </section>
 
 <!-- MODEL -->
 <section class="page" id="model">
   <h1>Model &amp; Dataset</h1>
-  <p class="sub" id="modelSub"></p>
+  <p class="lede" id="modelSub"></p>
   <div class="grid g3">
-    <div class="card"><h2>Dataset</h2><p class="sub">shipment-sensor-dataset.csv</p><table><tbody id="ds"></tbody></table></div>
-    <div class="card"><h2>Model</h2><p class="sub">XGBoost, gradient-boosted trees</p><div id="mdesc" style="font-size:13px"></div></div>
-    <div class="card"><h2>Test-set metrics</h2><p class="sub" id="metSub"></p><div id="metrics"></div></div>
+    <div class="card"><h2>Dataset</h2><p class="sub" style="margin-bottom:12px">shipment-sensor-dataset.csv</p><table class="pairs"><tbody id="ds"></tbody></table></div>
+    <div class="card"><h2>Model</h2><p class="sub" style="margin-bottom:12px">XGBoost, gradient-boosted trees</p><div id="mdesc" style="font-size:13px"></div></div>
+    <div class="card"><h2>Test-set metrics</h2><p class="sub" id="metSub" style="margin-bottom:12px"></p><div id="metrics"></div></div>
   </div>
-  <div class="grid e2" style="margin-top:16px">
-    <div class="card"><h2>ROC curve</h2><p class="sub" id="aucRoc"></p><div id="roc"></div></div>
-    <div class="card"><h2>Precision-recall curve</h2><p class="sub" id="aucPr"></p><div id="pr"></div></div>
-    <div class="card"><h2>Calibration</h2><p class="sub">Predicted risk vs actual failure rate, 10 bins. Points on the dashed line mean the percentages can be trusted.</p><div id="cal"></div></div>
+  <div class="card mt"><h2>Variables in the dataset</h2><p class="sub" style="margin-bottom:14px">Descriptions marked <i>inferred</i> come from the column name. Please confirm them against your data dictionary.</p>
+    <div class="tw"><table><thead><tr><th>Variable</th><th>Role</th><th>Meaning</th><th class="num">Mean</th><th>Range</th></tr></thead><tbody id="vars"></tbody></table></div></div>
+  <div class="grid e2 mt">
+    <div class="card"><h2>ROC curve</h2><p class="sub" id="aucRoc"></p><div class="chart" id="roc"></div></div>
+    <div class="card"><h2>Precision-recall curve</h2><p class="sub" id="aucPr"></p><div class="chart" id="pr"></div></div>
+    <div class="card"><h2>Calibration</h2><p class="sub">Predicted risk vs actual failure rate, 10 bins. Points on the dashed line mean the percentages can be trusted.</p><div class="chart" id="cal"></div></div>
     <div class="card"><h2>Confusion matrix</h2><p class="sub" id="cmSub"></p><div id="cm"></div>
       <h2 style="margin-top:22px">Threshold trade-off</h2><p class="sub">Lower thresholds catch more failures but flag more shipments</p>
-      <table><thead><tr><th>Threshold</th><th>Flagged</th><th>Precision</th><th>Recall</th></tr></thead><tbody id="thr"></tbody></table></div>
+      <table><thead><tr><th>Threshold</th><th class="num">Flagged</th><th class="num">Precision</th><th class="num">Recall</th></tr></thead><tbody id="thr"></tbody></table></div>
     <div class="card"><h2>What the model relies on</h2><p class="sub">Share of the model's total gain</p><div id="fi"></div></div>
     <div class="card"><h2>Door-opens models</h2><p class="sub">Used for the handling forecast and what-if</p><div id="dm"></div></div>
   </div>
@@ -171,18 +421,19 @@ code{background:#eef2f9;padding:1px 6px;border-radius:4px;font-size:12.5px}
 <!-- ABOUT -->
 <section class="page" id="about">
   <h1>About Us</h1>
-  <p class="sub">The team behind ColdChain Monitor.</p>
+  <p class="lede">The team behind ColdChain Monitor.</p>
   <div class="grid g3" id="team"></div>
 </section>
 
 </main>
 <script src="data.js"></script>
+<script src="refdata.js"></script>
 <script>
 /* ===== EDIT ME ===== */
 const TEAM=[
- {name:"Team Member 1",uni:"Universitas Indonesia",major:"Computer Science",role:"Model development"},
- {name:"Team Member 2",uni:"Institut Teknologi Bandung",major:"Industrial Engineering",role:"Data and logistics"},
- {name:"Team Member 3",uni:"Universitas Gadjah Mada",major:"Statistics",role:"Evaluation and design"}];
+ {name:"Clarence Victorio Widyanto",uni:"Chinese University of Hong Kong",major:"Systems Engineering"},
+ {name:"Denise Evangeline Pigety",uni:"Nanyang Technological University",major:"Mechanical Engineering"},
+ {name:"Vittorio Dinata",uni:"Binus University",major:"Computer Science"}];
 /* ==================== */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const CC=window.CC,M=CC.models,ME=CC.meta,D=CC.data,T=CC.test,DR=CC.door,RNG=ME.training_ranges;
@@ -196,50 +447,372 @@ const risk=r=>sig(tf(M.risk,vec(M.risk,r)));
 const mu=r=>Math.exp(tf(M.door,vec(M.door,r)));
 const riskAt=(r,n)=>sig(tf(M.fail,vec(M.fail,{...r,door_opens:n})));
 const nbppf=(q,k,m)=>{const p=k/(k+m);let n=0,pm=Math.pow(p,k),c=pm;while(c<q&&n<500){pm*=(n+k)/(n+1)*(1-p);n++;c+=pm}return n};
-const band=p=>p>=HI?["HIGH","p-bad","#dc3a4b"]:p>=REV?["MEDIUM","p-warn","#e8890c"]:["LOW","p-ok","#12a05c"];
+const band=p=>p>=HI?["HIGH","p-bad","#d03b3b"]:p>=REV?["MEDIUM","p-warn","#fab219"]:["LOW","p-ok","#0ca30c"];
 const ADV={LOW:"Standard handling.",MEDIUM:"Review before shipping: shorten the route or transit time, reduce hand-offs, upgrade the packaging, and add a data logger.",HIGH:"Do not ship as planned. Reduce transit time or legs, or upgrade packaging first, and put a data logger with alarms on the shipment."};
-const bars=(el,rows)=>$(el).innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%;background:${r[2]}"></i></div><b style="text-align:right">${r[3]}</b></div>`).join("");
-const kv=rows=>rows.map(m=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)"><span>${m[0]}</span><b style="text-align:right">${m[1]}</b></div>`).join("");
+const bars=(el,rows)=>$(el).innerHTML=rows.map(r=>`<div class="row"><span>${r[0]}</span><div class="bar"><i style="width:${r[1]}%;background:${r[2]}"></i></div><b>${r[3]}</b></div>`).join("");
+const kv=rows=>rows.map(m=>`<div class="kv"><span>${m[0]}</span><b>${m[1]}</b></div>`).join("");
+const SER={blue:"#2a78d6",aqua:"#1baf7a",orange:"#eb6834"};
+/* Semantic heat ramp: cold and hot poles read as opposite, neutral in the middle. */
+const HEAT=["#2a78d6","#86b6ef","#b9bfc9","#ec835a","#d03b3b"];
 
-/* ---------- Overview ---------- */
-const av=D.mean;
-$("#kpis").innerHTML=[["Shipments",fmt(D.rows),D.cols+" columns"],["Silent failure rate",pct(D.rate,1),"about 1 in 5 shipments"],["Avg. temperature",av.temp_mean_c.toFixed(1)+"°C","avg. peak "+av.temp_max_c.toFixed(1)+"°C"],["Avg. humidity",pct(av.rh_mean),"avg. peak "+pct(av.rh_max)],["Avg. door opens",av.door_opens.toFixed(1),"per shipment"]]
- .map(k=>`<div class="card kpi"><small>${k[0]}</small><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
-const HL={transit_days:"Transit time (days)",door_opens:"Door opens",temp_mean_c:"Mean temperature (°C)",temp_max_c:"Max temperature (°C)",rh_mean:"Mean humidity (fraction)",vibration_index:"Vibration index",temp_std_c:"Temperature std. dev. (°C)",temp_recovery_rate:"Temperature recovery rate"};
-$("#hvar").innerHTML=Object.keys(D.hist).map(k=>`<option value="${k}">${HL[k]}</option>`).join("");
-function drawHist(){
- const h=D.hist[$("#hvar").value],W=700,H=230,l=40,r=10,t=10,b=28,n=20,mx=Math.max(...h.ok,...h.fail)*1.1,
-  X=i=>l+(i+.5)*(W-l-r)/n,Y=v=>t+(1-v/mx)*(H-t-b),ln=a=>a.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" "),
-  ar=(a,c)=>`<polygon points="${X(0)},${Y(0)} ${ln(a)} ${X(n-1)},${Y(0)}" fill="${c}" opacity=".16"/><polyline points="${ln(a)}" fill="none" stroke="${c}" stroke-width="2"/>`;
- let g="";for(let i=0;i<=4;i++){const v=mx*i/4;g+=`<line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e8edf5"/><text x="${l-6}" y="${Y(v)+4}" text-anchor="end">${(v*100).toFixed(0)}%</text>`}
- for(const i of [0,5,10,15,20])g+=`<text x="${l+i*(W-l-r)/n}" y="${H-8}" text-anchor="middle">${h.edges[i]}</text>`;
- $("#hist").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Distribution by outcome">${g}${ar(h.ok,"#1a6cf0")}${ar(h.fail,"#dc3a4b")}</svg>`}
-$("#hvar").onchange=drawHist;drawHist();
-const GL={transit_days:"Transit time",leg_count:"Transport legs",package_type:"Package type",carrier_id:"Carrier",origin_zone:"Origin zone",dest_zone:"Destination zone"};
-$("#gvar").innerHTML=Object.keys(GL).map(k=>`<option value="${k}">${GL[k]}</option>`).join("");
-const gl=(k,v)=>{if(k=="transit_days"){const m=v.match(/\((\d+), (\d+)\]/);return +m[2]>=20?m[1]+"+ days":m[1]+"–"+m[2]+" days"}return k=="leg_count"?v+(v=="1"?" leg":" legs"):(GL[k].split(" ").pop()=="zone"?"Zone ":k=="carrier_id"?"Carrier ":"Type ")+v};
-function drawGroup(){const k=$("#gvar").value,g=D.groups[k],mx=Math.max(...g.map(x=>x[1]));
- bars("#gbars",g.map(([v,r,n])=>[gl(k,v),r/mx*100,r>D.rate*1.25?"#dc3a4b":r<D.rate*.8?"#12a05c":"#1a6cf0",pct(r,1)]));
- $("#gavg").textContent="Dataset average: "+pct(D.rate,1)+". Groups with few shipments are noisier."}
-$("#gvar").onchange=drawGroup;drawGroup();
-const S=D.sample,ci=Object.fromEntries(S.cols.map((c,i)=>[c,i]));
-$("#exSel").innerHTML=S.rows.map((r,i)=>`<option value="${i}">${r[0]}</option>`).join("");
-function drawEx(){const r=S.rows[$("#exSel").value],g=c=>r[ci[c]],
- p=risk({transit_days:g("transit_days"),fill_ratio:g("fill_ratio"),leg_count:g("leg_count"),pkg:g("package_type")}),b=band(p),f=g("silent_failure");
- $("#exOut").innerHTML=kv([["Temperature mean / min / max",`${g("temp_mean_c")} / ${g("temp_min_c")} / ${g("temp_max_c")} °C`],["Mean humidity",pct(g("rh_mean"))],["Door opens",g("door_opens")],["Transit time",g("transit_days")+" days"],["Legs / package type / fill",`${g("leg_count")} / ${g("package_type")} / ${g("fill_ratio")}`]])+
- `<div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap"><span>Model risk <b>${pct(p)}</b></span><span class="pill ${b[1]}">${b[0]}</span><span style="margin-left:auto">Actual: <span class="pill ${f?"p-bad":"p-ok"}">${f?"Silent failure":"No failure"}</span></span></div>`}
-$("#exSel").onchange=drawEx;drawEx();
-bars("#corr",D.corr.slice(0,10).map(c=>[c[0],Math.abs(c[1])/D.corr[0][1]*100,"#1a6cf0",c[1].toFixed(2)]));
+/* Round axis steps (1/2/5 x a power of ten) so ticks read 10, 15, 20
+   rather than thirds of whatever the data happened to span. */
+function niceTicks(lo,hi,want,bound){
+ const raw=(hi-lo||1)/want,mag=Math.pow(10,Math.floor(Math.log10(raw))),nm=raw/mag;
+ const step=(nm<=1?1:nm<=2?2:nm<=5?5:10)*mag;
+ let a=Math.floor(lo/step)*step,b=Math.ceil(hi/step)*step;
+ if(bound){a=Math.max(a,bound[0]);b=Math.min(b,bound[1])}
+ const t=[];for(let v=a;v<=b+step*1e-6;v+=step)t.push(Math.round(v/step)*step);
+ return{lo:a,hi:b,ticks:t}}
 
-/* ---------- Prediction ---------- */
+/* One line/area panel on a single y-axis, with a crosshair + tooltip.
+   Two measures never share a plot here - each gets its own panel. */
+function linePanel(el,times,vals,color,unit,fmt,bound){
+ const host=$(el);if(!host)return;
+ const n=vals.length,W=700,H=150,l=40,r=12,t=10,b=24;
+ const mn=Math.min(...vals),mx=Math.max(...vals),pad=(mx-mn||1)*.18;
+ const nt=niceTicks(mn-pad,mx+pad,3,bound),lo=nt.lo,hi=nt.hi,sp=Math.max(hi-lo,1);
+ const X=i=>l+(n<2?0:i*(W-l-r)/(n-1)),Y=v=>t+(1-(v-lo)/sp)*(H-t-b);
+ let g="";
+ for(const v of nt.ticks){
+  g+=`<line x1="${l}" x2="${W-r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--grid)"/>`
+   +`<text x="${l-7}" y="${(Y(v)+3.5).toFixed(1)}" text-anchor="end">${fmt(v)}</text>`}
+ for(let i=0;i<n;i+=8)g+=`<text x="${X(i).toFixed(1)}" y="${H-7}" text-anchor="middle">`
+  +new Date(times[i]).toLocaleTimeString([],{hour:"2-digit"})+`</text>`;
+ const pts=vals.map((v,i)=>X(i).toFixed(1)+" "+Y(v).toFixed(1));
+ const area=`M${X(0).toFixed(1)} ${Y(lo).toFixed(1)} L`+pts.join(" L")+` L${X(n-1).toFixed(1)} ${Y(lo).toFixed(1)} Z`;
+ host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${unit} over the next 48 hours">${g}
+  <path d="${area}" fill="${color}" opacity=".08"/>
+  <path d="M${pts.join(" L")}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <line id="" class="cx" x1="0" x2="0" y1="${t}" y2="${H-b}" stroke="var(--axis)" opacity="0"/>
+  <circle class="cd" r="4" fill="${color}" stroke="#fff" stroke-width="2" opacity="0"/>
+  <rect x="${l}" y="${t}" width="${W-l-r}" height="${H-t-b}" fill="transparent"/></svg>
+  <div class="tip"></div>`;
+ const svg=host.querySelector("svg"),cx=host.querySelector(".cx"),cd=host.querySelector(".cd"),tip=host.querySelector(".tip");
+ const move=e=>{const bb=svg.getBoundingClientRect();
+  const px=(e.clientX-bb.left)/bb.width*W;
+  let i=Math.round((px-l)/((W-l-r)/(n-1)));i=Math.max(0,Math.min(n-1,i));
+  cx.setAttribute("x1",X(i));cx.setAttribute("x2",X(i));cx.setAttribute("opacity","1");
+  cd.setAttribute("cx",X(i));cd.setAttribute("cy",Y(vals[i]));cd.setAttribute("opacity","1");
+  tip.innerHTML=`<em>${new Date(times[i]).toLocaleString([],{weekday:"short",hour:"2-digit",minute:"2-digit"})}</em><b>${fmt(vals[i])}</b> ${unit}`;
+  tip.style.left=X(i)/W*100+"%";tip.style.top=Y(vals[i])/H*bb.height-10+"px";tip.style.opacity="1"};
+ svg.addEventListener("mousemove",move);
+ svg.addEventListener("mouseleave",()=>{tip.style.opacity="0";cx.setAttribute("opacity","0");cd.setAttribute("opacity","0")});
+}
+
+/* ---------- searchable dropdown ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rx=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const hl=(s,q)=>{if(!q)return esc(s);const i=s.toLowerCase().indexOf(q);return i<0?esc(s):esc(s.slice(0,i))+`<span class="mark">${esc(s.slice(i,i+q.length))}</span>`+esc(s.slice(i+q.length))};
+
+/* items: {label, note, s} where s is the lowercase text searched against.
+   Ranks exact prefix above word-start above substring above keyword-only, so
+   typing "ind" puts India and Indonesia at the top. */
+function combo(id,items,onChange,limit){
+ const inp=$("#"+id),list=$("#"+id+"-list"),LIM=limit||60;
+ let shown=[],ix=-1,sel=null;
+ const match=q=>{
+  if(!q)return items.slice(0,LIM);
+  const w=new RegExp("\\b"+rx(q)),out=[];
+  for(const it of items){const lab=it.label.toLowerCase();
+   let r=lab.startsWith(q)?0:w.test(lab)?1:lab.includes(q)?2:it.s.includes(q)?3:-1;
+   if(r>=0)out.push([r,it])}
+  out.sort((a,b)=>a[0]-b[0]||a[1].label.localeCompare(b[1].label));
+  return out.slice(0,LIM).map(x=>x[1])};
+ const draw=q=>{shown=match(q);
+  list.innerHTML=shown.length
+   ?shown.map((it,i)=>`<li role="option" id="${id}-o${i}" data-i="${i}" aria-selected="${i===ix}"><span>${hl(it.label,q)}</span><small>${esc(it.note||"")}</small></li>`).join("")
+   :`<li class="none">No match for &ldquo;${esc(q)}&rdquo;</li>`};
+ const q=()=>inp.value.trim().toLowerCase();
+ const show=()=>{draw(q());list.hidden=false;inp.setAttribute("aria-expanded","true")};
+ const hide=()=>{list.hidden=true;inp.setAttribute("aria-expanded","false");ix=-1;inp.removeAttribute("aria-activedescendant")};
+ const move=d=>{if(list.hidden)show();if(!shown.length)return;
+  ix=(ix+d+shown.length)%shown.length;draw(q());
+  inp.setAttribute("aria-activedescendant",id+"-o"+ix);
+  const li=list.children[ix];if(li&&li.scrollIntoView)li.scrollIntoView({block:"nearest"})};
+ const pick=i=>{const it=shown[i];if(!it)return;sel=it;inp.value=it.label;inp.setAttribute("aria-invalid","false");hide();onChange&&onChange(it)};
+ inp.addEventListener("input",()=>{sel=null;ix=-1;show();onChange&&onChange(null)});
+ inp.addEventListener("focus",show);
+ inp.addEventListener("keydown",e=>{
+  if(e.key=="ArrowDown"){e.preventDefault();move(1)}
+  else if(e.key=="ArrowUp"){e.preventDefault();move(-1)}
+  else if(e.key=="Enter"&&!list.hidden){e.preventDefault();pick(ix<0?0:ix)}
+  else if(e.key=="Escape")hide()});
+ inp.addEventListener("blur",()=>setTimeout(()=>{
+  // A typed value that resolves to exactly one option is accepted on blur;
+  // anything else is left unresolved so validation can catch it.
+  if(!sel&&inp.value.trim()){const m=match(q());if(m.length==1){shown=m;pick(0);return}}
+  hide()},140));
+ list.addEventListener("mousedown",e=>{const li=e.target.closest("li[data-i]");if(li){e.preventDefault();pick(+li.dataset.i)}});
+ return{get value(){return sel},
+  choose(it){sel=it;inp.value=it?it.label:"";inp.setAttribute("aria-invalid","false")},
+  clear(){sel=null;inp.value="";inp.setAttribute("aria-invalid","false")},
+  flag(bad){inp.setAttribute("aria-invalid",bad?"true":"false")},
+  el:inp}}
+
+/* ---------- reference lists (countries + FoodKeeper) ---------- */
+const REF=window.REF;
+const COUNTRIES=REF.countries.map(c=>({label:c[0],iso2:c[1],iso3:c[2],lat:c[3],lon:c[4],cap:c[5],region:c[6],
+ note:c[5]||c[6],s:(c[0]+" "+c[1]+" "+c[2]+" "+c[5]+" "+c[6]).toLowerCase()}));
+const BYISO=Object.fromEntries(COUNTRIES.map(c=>[c.iso3,c]));
+const FOODS=REF.food.map(f=>({label:f[0],cat:REF.foodCategories[f[1]],
+ pantry:[f[2],f[3]],fridge:[f[4],f[5]],freezer:[f[6],f[7]],
+ note:REF.foodCategories[f[1]],s:(f[0]+" "+REF.foodCategories[f[1]]+" "+f[8]).toLowerCase()}));
+
+const km=(a,b)=>{const R=6371,t=d=>d*Math.PI/180,
+ dLa=t(b.lat-a.lat),dLo=t(b.lon-a.lon),
+ h=Math.sin(dLa/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(dLo/2)**2;
+ return Math.round(2*R*Math.asin(Math.sqrt(h)))};
+
+/* ============================================================
+   OVERVIEW - Open-Meteo + GDACS only.
+   Nothing on this page may read window.CC (the shipment dataset).
+   ============================================================ */
+const WMO={0:["Clear sky","☀️"],1:["Mainly clear","🌤️"],2:["Partly cloudy","⛅"],3:["Overcast","☁️"],
+ 45:["Fog","🌫️"],48:["Rime fog","🌫️"],51:["Light drizzle","🌦️"],53:["Drizzle","🌦️"],55:["Heavy drizzle","🌦️"],
+ 56:["Freezing drizzle","🧊"],57:["Heavy freezing drizzle","🧊"],61:["Light rain","🌧️"],63:["Rain","🌧️"],65:["Heavy rain","🌧️"],
+ 66:["Freezing rain","🧊"],67:["Heavy freezing rain","🧊"],71:["Light snow","🌨️"],73:["Snow","🌨️"],75:["Heavy snow","❄️"],
+ 77:["Snow grains","🌨️"],80:["Rain showers","🌦️"],81:["Heavy rain showers","🌧️"],82:["Violent rain showers","⛈️"],
+ 85:["Snow showers","🌨️"],86:["Heavy snow showers","❄️"],95:["Thunderstorm","⛈️"],96:["Thunderstorm, hail","⛈️"],99:["Thunderstorm, heavy hail","⛈️"]};
+const wmo=c=>WMO[c]||["Unknown","•"];
+const EVT={EQ:"Earthquake",TC:"Tropical cyclone",FL:"Flood",DR:"Drought",WF:"Wildfire",VO:"Volcano"};
+const LVL={Red:"#d03b3b",Orange:"#eb6834",Green:"#0ca30c"};
+const OM="https://api.open-meteo.com/v1/forecast";
+const GDACS="https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=EQ;TC;FL;DR;WF;VO&alertlevel=Green;Orange;Red";
+
+const guessHome=()=>{
+ const r=(navigator.language||"").split("-")[1];
+ return COUNTRIES.find(c=>c.iso2==r)||BYISO.IDN||COUNTRIES[0]};
+let ovPlace=guessHome(),ovEvents=null,ovBusy=false;
+
+const ovCombo=combo("ovc",COUNTRIES,c=>{if(c){ovPlace=c;ovLoad()}});
+ovCombo.choose(ovPlace);
+
+const loadingRows=n=>Array.from({length:n},(_,i)=>`<div class="skel" style="margin:10px 0;width:${90-i*7}%"></div>`).join("");
+
+async function getJSON(url,label){
+ const r=await fetch(url,{cache:"no-store"});
+ if(!r.ok)throw new Error(`${label} returned HTTP ${r.status}`);
+ return r.json()}
+
+async function ovLoad(){
+ if(ovBusy)return;ovBusy=true;
+ $("#ovErr").innerHTML="";
+ $("#ovWhere").textContent=`Current conditions — ${ovPlace.label}`;
+ $("#ovWhen").textContent="Loading from Open-Meteo…";
+ $("#ovNow").innerHTML=loadingRows(2);
+ $("#ovHourlyT").innerHTML=loadingRows(3);$("#ovHourlyR").innerHTML=loadingRows(3);
+ $("#ovExposure").innerHTML=loadingRows(5);
+
+ const wxUrl=`${OM}?latitude=${ovPlace.lat}&longitude=${ovPlace.lon}`
+  +"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,is_day"
+  +"&hourly=temperature_2m,relative_humidity_2m"
+  +"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max"
+  +"&timezone=auto&forecast_days=7";
+
+ const [wx,gd]=await Promise.allSettled([
+  getJSON(wxUrl,"Open-Meteo"),
+  ovEvents?Promise.resolve(ovEvents):getJSON(GDACS,"GDACS")]);
+
+ const bad=[];
+ if(wx.status=="fulfilled")drawWeather(wx.value);
+ else{bad.push("Open-Meteo: "+wx.reason.message);clearWeather()}
+ if(gd.status=="fulfilled"){ovEvents=gd.value;drawEvents()}
+ else{bad.push("GDACS: "+gd.reason.message);clearEvents()}
+
+ if(bad.length)$("#ovErr").innerHTML=`<div class="fail"><b>Live data unavailable.</b> ${bad.map(esc).join(" · ")} — check the connection and press Refresh.</div>`;
+ $("#ovStamp").textContent="Updated "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+ ovBusy=false}
+
+function clearWeather(){
+ $("#ovNow").innerHTML='<p class="ph">No current conditions.</p>';
+ $("#ovKpis").innerHTML="";$("#ovHourlyT").innerHTML="";$("#ovHourlyR").innerHTML="";$("#ovDaily").innerHTML="";
+ $("#ovExposure").innerHTML='<p class="ph">No hourly data.</p>';$("#ovWhen").textContent="—"}
+
+function drawWeather(w){
+ const c=w.current,[txt,icon]=wmo(c.weather_code);
+ $("#ovWhen").textContent=`${ovPlace.cap||ovPlace.label} · ${ovPlace.lat.toFixed(2)}, ${ovPlace.lon.toFixed(2)} · local time `
+  +new Date(c.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+` (${w.timezone_abbreviation})`;
+ $("#ovDay").textContent=c.is_day?"Daytime":"Night";
+ $("#ovNow").innerHTML=`<div class="wx"><div class="ic" aria-hidden="true">${icon}</div>
+  <div><div class="tmp">${c.temperature_2m.toFixed(1)}°C</div><div class="sub" style="margin:4px 0 0">${esc(txt)} · feels like ${c.apparent_temperature.toFixed(1)}°C</div></div></div>`;
+
+ $("#ovKpis").innerHTML=[
+  ["Temperature",c.temperature_2m.toFixed(1)+"°C","feels like "+c.apparent_temperature.toFixed(1)+"°C"],
+  ["Humidity",c.relative_humidity_2m+"%","relative humidity"],
+  ["Conditions",icon+" "+txt,"WMO code "+c.weather_code],
+  ["Wind",c.wind_speed_10m.toFixed(1)+" km/h","at 10 m"],
+  ["Precipitation",c.precipitation.toFixed(1)+" mm","last hour"]
+ ].map(k=>`<div class="card kpi"><small>${k[0]}</small><b class="${k[0]=="Conditions"?"sm":""}">${k[1]}</b><span>${k[2]}</span></div>`).join("");
+
+ drawHourly(w.hourly);
+ drawDaily(w.daily);
+ drawExposure(w.hourly)}
+
+function drawHourly(h){
+ const n=Math.min(48,h.time.length),T=h.time.slice(0,n);
+ linePanel("#ovHourlyT",T,h.temperature_2m.slice(0,n),SER.blue,"\u00b0C",v=>v.toFixed(0));
+ linePanel("#ovHourlyR",T,h.relative_humidity_2m.slice(0,n),SER.aqua,"%",v=>v.toFixed(0),[0,100]);}
+
+function drawDaily(d){
+ $("#ovDaily").innerHTML=d.time.map((day,i)=>{const[txt,icon]=wmo(d.weather_code[i]);
+  return `<tr><td><b>${new Date(day).toLocaleDateString([],{weekday:"short"})}</b><br><span class="sub" style="margin:0">${new Date(day).toLocaleDateString([],{day:"numeric",month:"short"})}</span></td>
+  <td>${icon} ${esc(txt)}</td>
+  <td class="num"><b>${Math.round(d.temperature_2m_max[i])}°</b> <span style="color:var(--ink-3)">/ ${Math.round(d.temperature_2m_min[i])}°</span></td>
+  <td class="num">${d.precipitation_sum[i].toFixed(1)} mm</td>
+  <td class="num">${Math.round(d.wind_speed_10m_max[i])} km/h</td></tr>`}).join("")}
+
+/* Hours of ambient exposure per band - what the cooling has to fight on the
+   ground, straight from the hourly forecast. */
+function drawExposure(h){
+ const BANDS=[["Freezing, below 0°C",v=>v<0,HEAT[0]],["Chilled, 0 to 8°C",v=>v>=0&&v<8,HEAT[1]],
+  ["Mild, 8 to 20°C",v=>v>=8&&v<20,HEAT[2]],["Warm, 20 to 30°C",v=>v>=20&&v<30,HEAT[3]],
+  ["Heat stress, 30°C and up",v=>v>=30,HEAT[4]]];
+ const T=h.temperature_2m,R=h.relative_humidity_2m,n=T.length;
+ const rows=BANDS.map(([lab,f,col])=>{const c=T.filter(f).length;return[lab,c/n*100,col,c+" h"]});
+ bars("#ovExposure",rows);
+ const humid=R.filter(v=>v>=85).length,peak=Math.max(...T);
+ $("#ovExposure").insertAdjacentHTML("beforeend",
+  `<p class="sub" style="margin:14px 0 0">${n} forecast hours. Peak air temperature <b>${peak.toFixed(1)}°C</b>; <b>${humid} h</b> at 85% relative humidity or above, when condensation on cold packaging becomes likely.</p>`)}
+
+function clearEvents(){
+ $("#ovLocal").innerHTML='<p class="ph">No hazard data.</p>';
+ $("#ovAlertKpis").innerHTML="";
+ $("#ovEvents").innerHTML='<tr><td colspan="6" class="ph">No hazard data.</td></tr>'}
+
+const evAffects=(p,iso3)=>p.iso3==iso3||(p.affectedcountries||[]).some(a=>a.iso3==iso3);
+const RANK={Red:0,Orange:1,Green:2};
+/* GDACS reports "Magnitude 0" for event types that carry no magnitude, such as
+   floods. Showing that is worse than showing nothing. */
+const sevText=e=>{const s=e.severitydata||{},t=(s.severitytext||"").trim();
+ return !t||(!s.severity&&/^magnitude\s*0\b/i.test(t))?"—":t};
+
+function drawEvents(){
+ const all=(ovEvents.features||[]).map(f=>f.properties)
+  .sort((a,b)=>(RANK[a.alertlevel]??3)-(RANK[b.alertlevel]??3)||new Date(b.fromdate)-new Date(a.fromdate));
+ const count=l=>all.filter(e=>e.alertlevel==l).length;
+ const here=all.filter(e=>evAffects(e,ovPlace.iso3));
+
+ $("#ovAlertKpis").innerHTML=[
+  ["Active events",all.length,"reported by GDACS"],
+  ["Red alerts",count("Red"),"highest severity"],
+  ["Orange alerts",count("Orange"),"significant"],
+  ["Green alerts",count("Green"),"low impact"],
+  ["Affecting "+ovPlace.label,here.length,"selected location"]
+ ].map((k,i)=>`<div class="card kpi"><small>${esc(k[0])}</small><b style="${i?"color:"+[0,LVL.Red,LVL.Orange,LVL.Green,"var(--ink)"][i]:""}">${k[1]}</b><span>${k[2]}</span></div>`).join("");
+
+ $("#ovLocalSub").textContent=`GDACS events affecting ${ovPlace.label}`;
+ $("#ovLocal").innerHTML=here.length
+  ?`<ul class="ev">${here.slice(0,8).map(e=>`<li><span class="dot" style="background:${LVL[e.alertlevel]||"var(--ink-3)"}"></span>
+    <div><b>${esc(EVT[e.eventtype]||e.eventtype)}</b> — ${esc(e.name||e.description||"")}
+    <br><span class="sub" style="margin:0">${esc(e.alertlevel)} alert · ${esc(sevText(e))} · from ${new Date(e.fromdate).toLocaleDateString()}</span>
+    ${(e.url||{}).report?` <a href="${esc(e.url.report)}" target="_blank" rel="noopener">report</a>`:""}</div></li>`).join("")}</ul>`
+  :`<p class="ph">No active GDACS event lists ${esc(ovPlace.label)} among its affected countries right now.</p>`;
+
+ drawEventTable(all)}
+
+function drawEventTable(all){
+ const f=$("#ovFilter").value;
+ const keep=f=="all"?all:f=="Red"?all.filter(e=>e.alertlevel=="Red"):all.filter(e=>e.alertlevel!="Green");
+ $("#ovEvents").innerHTML=keep.length?keep.slice(0,40).map(e=>{
+  const col=LVL[e.alertlevel]||"var(--ink-3)";
+  return `<tr><td><span class="pill" style="background:${col}1f;color:${col}">${esc(e.alertlevel)}</span></td>
+   <td style="white-space:nowrap">${esc(EVT[e.eventtype]||e.eventtype)}</td>
+   <td>${(e.url||{}).report?`<a href="${esc(e.url.report)}" target="_blank" rel="noopener">${esc(e.name||e.description||"Event")}</a>`:esc(e.name||e.description||"Event")}</td>
+   <td>${esc(e.country||((e.affectedcountries||[])[0]||{}).countryname||"—")}</td>
+   <td>${esc(sevText(e))}</td>
+   <td class="num">${e.fromdate?new Date(e.fromdate).toLocaleDateString():"—"}</td></tr>`}).join("")
+  :'<tr><td colspan="6" class="ph">No events at this alert level.</td></tr>'}
+
+$("#ovFilter").onchange=()=>{if(ovEvents)drawEventTable((ovEvents.features||[]).map(x=>x.properties)
+ .sort((a,b)=>(RANK[a.alertlevel]??3)-(RANK[b.alertlevel]??3)||new Date(b.fromdate)-new Date(a.fromdate)))};
+$("#ovRefresh").onclick=()=>{ovEvents=null;ovLoad()};
+ovLoad();
+
+/* ============================================================
+   SHIPMENT PREDICTION - user inputs + the model. Runs only on
+   the Predict button, never on input.
+   ============================================================ */
+const PLACEHOLDER=`<h2>Prediction</h2><p class="sub">Nothing scored yet</p>
+ <p class="ph">Choose <b>Country From</b>, <b>Country To</b> and <b>Food Type</b>, set the route and packing details, then press <b>Predict</b>.</p>`;
+$("#result").innerHTML=PLACEHOLDER;
+
+let stale=false;
+const markStale=()=>{if(!stale&&$("#result").dataset.done){stale=true;
+ $("#result").insertAdjacentHTML("afterbegin",'<div class="note" id="staleNote">Inputs changed. Press <b>Predict</b> to score the new shipment.</div>')}};
+
+const cFrom=combo("from",COUNTRIES,markStale);
+const cTo=combo("to",COUNTRIES,markStale);
+const cFood=combo("food",FOODS,markStale);
+
+const labels=()=>{$("#v-transit").textContent=(+$("#transit").value)+" days";
+ $("#v-fill").textContent=(+$("#fill").value).toFixed(2)};
+$$("#form input[type=range],#form select,#form input[type=number]").forEach(e=>
+ e.addEventListener("input",()=>{labels();markStale()}));
+labels();
+
+/* Storage life comes from FoodKeeper. Refrigerated wins when the item lists a
+   fridge life, since that is how it would move in a cold chain; otherwise
+   frozen, otherwise ambient. */
+function storage(f){
+ const pick=(pair,mode,icon)=>pair[1]==null?null:{mode,icon,min:pair[0]??pair[1],max:pair[1]};
+ return pick(f.fridge,"Refrigerated","❄️")||pick(f.freezer,"Frozen","🧊")||pick(f.pantry,"Ambient / shelf-stable","📦")}
+
+const days=d=>d>=365?(d/365).toFixed(d%365?1:0)+(d<730?" year":" years"):d>=60?Math.round(d/30)+" months":d+" days";
+
+function shelfCard(f,transit){
+ const st=storage(f);
+ if(!st)return`<h3 style="margin-top:20px">Shelf life — ${esc(f.label)}</h3>
+  <p class="sub" style="margin:4px 0 0">FoodKeeper publishes no storage life for this item, so the trip cannot be checked against one. Category: ${esc(f.cat)}.</p>`;
+ const used=transit/st.min,left=st.min-transit;
+ const v=used>=1?["#d03b3b","var(--bad-ink)","Transit alone outlasts the shortest published storage life. This load cannot arrive with usable life left."]
+  :used>=.5?["#fab219","var(--warn-ink)","The trip eats more than half the shortest published storage life. Little room for a delay."]
+  :["#0ca30c","var(--ok-ink)","The trip is comfortably inside the published storage life."];
+ return`<h3 style="margin-top:20px">Shelf life — ${esc(f.label)}</h3>
+ <p class="sub" style="margin:4px 0 10px">${st.icon} ${st.mode} · FoodKeeper gives ${days(st.min)}${st.max!=st.min?" to "+days(st.max):""} · category ${esc(f.cat)}</p>
+ <div class="bar" style="height:8px"><i style="width:${Math.min(used*100,100).toFixed(0)}%;background:${v[0]}"></i></div>
+ <p style="margin:9px 0 0;font-size:13px">A ${transit}-day trip uses <b style="color:${v[1]}">${Math.min(used*100,999).toFixed(0)}%</b> of it${left>0?`, leaving about ${days(Math.round(left))} on arrival`:""}. ${v[2]}</p>`}
+
+function routeCard(a,b,transit){
+ const d=km(a,b),pace=Math.round(d/transit);
+ const same=a.iso3==b.iso3;
+ const mode=pace>1500?"only air freight sustains this pace":pace>700?"implies air or express road freight":pace>200?"consistent with road, rail or short sea":"consistent with sea freight or a short domestic leg";
+ return`<h3 style="margin-top:20px">Route</h3>
+ <p class="sub" style="margin:4px 0 10px">${esc(a.label)} → ${esc(b.label)}${same?" (domestic)":""}</p>
+ <table><tbody>
+ <tr><td>Origin</td><td class="num"><b>${esc(a.label)}</b><br><span class="sub" style="margin:0">${esc(a.cap)} · ${esc(a.region)}</span></td></tr>
+ <tr><td>Destination</td><td class="num"><b>${esc(b.label)}</b><br><span class="sub" style="margin:0">${esc(b.cap)} · ${esc(b.region)}</span></td></tr>
+ <tr><td>Great-circle distance</td><td class="num"><b>${same?"0":fmt(d)} km</b><br><span class="sub" style="margin:0">capital to capital</span></td></tr>
+ <tr><td>Implied pace</td><td class="num"><b>${fmt(pace)} km/day</b><br><span class="sub" style="margin:0">${mode}</span></td></tr>
+ </tbody></table>
+ <p class="sub" style="margin:10px 0 0">Origin and destination are recorded with the shipment and drive the shelf-life and pace checks. The risk model itself was trained without country fields, so they do not move the percentage above.</p>`}
+
 const rowNow=()=>({transit_days:+$("#transit").value,fill_ratio:+$("#fill").value,leg_count:+$("#legs").value,pkg:$("#pkg").value});
+
+function validate(){
+ const miss=[];
+ [[cFrom,"Country From"],[cTo,"Country To"],[cFood,"Food Type"]].forEach(([c,n])=>{
+  const bad=!c.value;c.flag(bad);if(bad)miss.push(n)});
+ // Legs is typed now, so it can arrive empty, fractional or negative.
+ const legEl=$("#legs"),lv=legEl.value.trim(),ln=Number(lv);
+ const legBad=lv===""||!Number.isFinite(ln)||!Number.isInteger(ln)||ln<1;
+ legEl.setAttribute("aria-invalid",legBad?"true":"false");
+ const msgs=[];
+ if(miss.length)msgs.push(`Select ${miss.map(m=>`<b>${m}</b>`).join(", ")} from the list before predicting.`);
+ if(legBad)msgs.push(`<b>Transport legs / hand-offs</b> must be a whole number, 1 or more.`);
+ $("#formErr").innerHTML=msgs.map(m=>`<p class="err">${m}</p>`).join("");
+ if(msgs.length){const first=[cFrom,cTo,cFood].find(c=>!c.value);(first?first.el:legEl).focus()}
+ return !msgs.length}
+
 function predict(){
+ if(!validate())return;
+ const from=cFrom.value,to=cTo.value,food=cFood.value;
  const r=rowNow(),p=risk(r),b=band(p);
- $("#v-transit").textContent=r.transit_days+" days";$("#v-fill").textContent=r.fill_ratio.toFixed(2);
  const notes=[];
  if(r.transit_days<RNG.transit_days[0]||r.transit_days>RNG.transit_days[1])notes.push(`Transit time is outside the training range (${RNG.transit_days[0]} to ${RNG.transit_days[1]} days). The prediction is an extrapolation.`);
  if(r.fill_ratio<RNG.fill_ratio[0])notes.push(`Fill ratio is below the training range (${RNG.fill_ratio[0].toFixed(2)} to 1). The prediction is an extrapolation.`);
- const rows=(a)=>a.map(([l,q])=>`<tr><td>${l}</td><td style="text-align:right"><b>${pct(q)}</b></td><td style="text-align:right;color:${q<p-.005?"#12a05c":q>p+.005?"#dc3a4b":"#66748f"}">${q-p>0?"+":""}${((q-p)*100).toFixed(0)}%</td></tr>`).join("");
+ if(r.leg_count>RNG.leg_count[1])notes.push(`More transport legs than any training shipment (${RNG.leg_count[0]} to ${RNG.leg_count[1]}). The prediction is an extrapolation.`);
+ const rows=a=>a.map(([l,q])=>`<tr><td>${l}</td><td class="num"><b>${pct(q)}</b></td><td class="num" style="color:${q<p-.005?"var(--ok-ink)":q>p+.005?"var(--bad-ink)":"var(--ink-3)"}">${q-p>0?"+":""}${((q-p)*100).toFixed(0)}%</td></tr>`).join("");
  const wi=[];[1,2].forEach(d=>{if(r.transit_days-d>=RNG.transit_days[0])wi.push([`Transit ${d} day${d>1?"s":""} shorter`,risk({...r,transit_days:r.transit_days-d})])});
  if(r.leg_count>1)wi.push(["One fewer leg / hand-off",risk({...r,leg_count:r.leg_count-1})]);
  ME.categories.package_type.forEach(k=>{if(String(k)!==r.pkg)wi.push([`Switch to package type ${k}`,risk({...r,pkg:String(k)})])});
@@ -248,22 +821,42 @@ function predict(){
  const sc=[["Light handling",lo],["Typical handling",ty],["Heavy handling",hi]];
  let known="";const o=$("#opens").value;
  if(o!==""&&+o>=0){const q=riskAt(r,+o);known=`<p style="margin:10px 0 0;font-size:13px">With <b>${o}</b> door opens: <b>${pct(q)}</b> (${q-p>0?"+":""}${((q-p)*100).toFixed(0)}% vs the headline ${pct(p)})${+o>DR.opens_training_range[1]?`<br><span style="color:#a35c00">More opens than any training shipment (${DR.opens_training_range[1]}); treat as an extrapolation.</span>`:""}</p>`}
- $("#result").innerHTML=`<h2>Prediction</h2><p class="sub">Probability of a silent failure</p>
- <div style="display:flex;align-items:center;gap:16px"><div class="big" style="color:${b[2]}">${pct(p)}</div><span class="pill ${b[1]}">${b[0]}</span></div>
- <div class="bar" style="margin:14px 0 8px;height:10px"><i style="width:${Math.min(p*100,100)}%;background:${b[2]}"></i></div>
- <p class="sub" style="margin:0 0 10px">Base rate in training data: ${pct(ME.base_failure_rate)}. Review at ${pct(REV)}, high at ${pct(HI)}.</p>
+
+ $("#result").innerHTML=`<h2>Prediction</h2>
+ <p class="sub">${esc(from.label)} → ${esc(to.label)} · ${esc(food.label)} · ${r.transit_days} days, ${r.leg_count} leg${r.leg_count>1?"s":""}, package type ${r.pkg}</p>
+ <div class="hero"><div class="big" style="color:${b[2]}">${pct(p)}</div><span class="pill ${b[1]}">${b[0]}</span></div>
+ <div class="bar" style="margin:14px 0 10px;height:8px"><i style="width:${Math.min(p*100,100)}%;background:${b[2]}"></i></div>
+ <p class="sub" style="margin:0 0 10px">Probability of a silent failure. Base rate in training data: ${pct(ME.base_failure_rate)}. Review at ${pct(REV)}, high at ${pct(HI)}.</p>
  <p style="margin:0 0 6px;font-size:13.5px">${ADV[b[0]]}</p>${notes.map(n=>`<p style="margin:4px 0;font-size:12.5px;color:#a35c00">! ${n}</p>`).join("")}
- <h3 style="margin-top:18px">What if…</h3><table><tbody>${rows(wi)}</tbody></table>
- <h3 style="margin-top:16px">If it slips…</h3><table><tbody>${rows(late)}</tbody></table>
- <h3 style="margin-top:16px">Handling (door opens)</h3>
+ ${shelfCard(food,r.transit_days)}
+ ${routeCard(from,to,r.transit_days)}
+ <h3 style="margin-top:20px">What if…</h3><table><tbody>${rows(wi)}</tbody></table>
+ <h3 class="mt">If it slips…</h3><table><tbody>${rows(late)}</tbody></table>
+ <h3 class="mt">Handling (door opens)</h3>
  <p class="sub" style="margin:2px 0 6px">Expected about ${m.toFixed(0)} opens (${pct(qh-ql)} range ${lo} to ${hi}). Opens travel with inspections and delays in the logger data; this shows association, not proof that opening a door causes failure.</p>
- <table><tbody>${sc.map(([l,n])=>`<tr><td>${l} (${n} opens)</td><td style="text-align:right"><b>${pct(riskAt(r,n))}</b></td></tr>`).join("")}</tbody></table>${known}`}
-$$("#form input,#form select").forEach(e=>e.oninput=predict);
-$("#reset").onclick=()=>{$("#form").reset();predict()};predict();
+ <table><tbody>${sc.map(([l,n])=>`<tr><td>${l} <span style="color:var(--ink-3)">(${n} opens)</span></td><td class="num"><b>${pct(riskAt(r,n))}</b></td></tr>`).join("")}</tbody></table>${known}`;
+ $("#result").dataset.done="1";stale=false}
+
+$("#btnPredict").onclick=predict;
+$("#btnReset").onclick=()=>{
+ // Called off the prototype: a form exposes its controls as named properties,
+ // so a control with id="reset" would shadow the reset() method.
+ HTMLFormElement.prototype.reset.call($("#form"));
+ [cFrom,cTo,cFood].forEach(c=>c.clear());
+ $("#legs").setAttribute("aria-invalid","false");
+ $("#formErr").innerHTML="";labels();
+ delete $("#result").dataset.done;stale=false;$("#result").innerHTML=PLACEHOLDER};
 
 /* ---------- Information ---------- */
 $("#bandSub").textContent=`Thresholds from the model: review at ${pct(REV)}, high at ${pct(HI)}. The review threshold was picked so a missed failure costs ${ME.cost_ratio_fn_to_fp}x a false alarm.`;
 $("#bands").innerHTML=[["LOW","p-ok","below "+pct(REV),"Standard handling."],["MEDIUM","p-warn",pct(REV)+" to "+pct(HI),"Review before shipping. Shorten the trip, reduce hand-offs, upgrade packaging, add a logger."],["HIGH","p-bad",pct(HI)+" or more","Do not ship as planned. Change the plan first and add a logger with alarms."]].map(r=>`<tr><td><span class="pill ${r[1]}">${r[0]}</span></td><td style="white-space:nowrap">${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+/* ---------- Model & Dataset ---------- */
+const [tn,fp,fn,tp]=T.cm,pr=tp/(tp+fp),rc=tp/(tp+fn),mt=ME.metrics_test,mv=ME.versions;
+$("#modelSub").textContent=`Trained on ${fmt(T.train_n)} shipments and scored on ${fmt(T.n)} held-out shipments (${T.pos} silent failures). xgboost ${mv.xgboost}.`;
+$("#ds").innerHTML=[["Shipments",fmt(D.rows)],["Columns",D.cols],["Silent failure rate",pct(D.rate,1)],["Train / test split","80% / 20%, stratified"],["Missing values","temp_recovery_rate 64, rh_max 334"],["Model inputs","4 of 22 columns"]].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join("");
+const bp=ME.best_params;
+$("#mdesc").innerHTML=`<p style="margin:0 0 8px">Predicts silent-failure risk from four things known before shipping: transit time, legs, package type and fill ratio. Longer transit can never lower the risk (monotone constraint).</p><p style="margin:0 0 8px">Tuned with 40 random searches, 5-fold cross-validation and log-loss. The alert threshold was chosen from out-of-fold predictions.</p><p style="margin:0;color:var(--ink-3);font-size:12px">${bp.n_estimators} trees, depth ${bp.max_depth}, learning rate ${bp.learning_rate}, min child weight ${bp.min_child_weight}, lambda ${bp.reg_lambda}.</p>`;
+$("#metSub").textContent="Threshold "+REV.toFixed(2)+" for the classification figures";
 const MI="Model input",SN="Sensor summary, known after the trip",NU="Not used by the model";
 const VARS=[["shipment_id","ID","Unique shipment code."],["transit_days",MI,"Door-to-door transit time in days."],["door_opens","Forecast and what-if","Times the container door was opened. Predicted by the door-opens model; not known before shipping."],
 ["temp_mean_c",SN,"Mean logged temperature, °C."],["temp_max_c",SN,"Highest logged temperature, °C."],["temp_min_c",SN,"Lowest logged temperature, °C."],["temp_std_c",SN,"Standard deviation of logged temperature, °C."],
@@ -273,37 +866,51 @@ const VARS=[["shipment_id","ID","Unique shipment code."],["transit_days",MI,"Doo
 ["sensor_gap_hours",NU,"Hours without sensor readings (inferred)."],["vibration_index",NU,"Vibration or rough-handling level (inferred)."],["feature_x1",NU,"Anonymous numeric feature."],["feature_x2",NU,"Anonymous numeric feature."],["feature_x3",NU,"Anonymous feature between 0 and 1."],
 ["silent_failure","Target","1 if the shipment silently failed, 0 otherwise. This is what the model predicts."]];
 const CS=Object.fromEntries(D.colstats.map(r=>[r[0],r]));
-$("#vars").innerHTML=VARS.map(([n,ro,me])=>{const c=CS[n];return`<tr><td><b>${n}</b></td><td>${ro}</td><td>${me}</td><td>${c?c[1]:n=="silent_failure"?pct(D.rate,1):"–"}</td><td style="white-space:nowrap">${c?c[2]+" to "+c[3]:n=="silent_failure"?"0 or 1":"–"}</td></tr>`}).join("");
+$("#vars").innerHTML=VARS.map(([n,ro,me])=>{const c=CS[n];return`<tr><td><b>${n}</b></td><td>${ro}</td><td>${me}</td><td class="num">${c?c[1]:n=="silent_failure"?pct(D.rate,1):"–"}</td><td style="white-space:nowrap">${c?c[2]+" to "+c[3]:n=="silent_failure"?"0 or 1":"–"}</td></tr>`}).join("");
 
-/* ---------- Model & Dataset ---------- */
-const [tn,fp,fn,tp]=T.cm,pr=tp/(tp+fp),rc=tp/(tp+fn),mt=ME.metrics_test,mv=ME.versions;
-$("#modelSub").textContent=`Trained on ${fmt(T.train_n)} shipments and scored on ${fmt(T.n)} held-out shipments (${T.pos} silent failures). xgboost ${mv.xgboost}.`;
-$("#ds").innerHTML=[["Shipments",fmt(D.rows)],["Columns",D.cols],["Silent failure rate",pct(D.rate,1)],["Train / test split","80% / 20%, stratified"],["Missing values","temp_recovery_rate 64, rh_max 334"],["Model inputs","4 of 22 columns"]].map(r=>`<tr><td style="color:var(--mut)">${r[0]}</td><td style="text-align:right"><b>${r[1]}</b></td></tr>`).join("");
-const bp=ME.best_params;
-$("#mdesc").innerHTML=`<p style="margin:0 0 8px">Predicts silent-failure risk from four things known before shipping: transit time, legs, package type and fill ratio. Longer transit can never lower the risk (monotone constraint).</p><p style="margin:0 0 8px">Tuned with 40 random searches, 5-fold cross-validation and log-loss. The alert threshold was chosen from out-of-fold predictions.</p><p style="margin:0;color:var(--mut);font-size:12px">${bp.n_estimators} trees, depth ${bp.max_depth}, learning rate ${bp.learning_rate}, min child weight ${bp.min_child_weight}, lambda ${bp.reg_lambda}.</p>`;
-$("#metSub").textContent="Threshold "+REV.toFixed(2)+" for the classification figures";
-$("#metrics").innerHTML=kv([["ROC-AUC",mt.roc_auc.toFixed(3)],["PR-AUC",mt.pr_auc.toFixed(3)+` <span style="font-weight:400;color:var(--mut)">(base ${pct(T.pos/T.n)})</span>`],["Brier score",mt.brier.toFixed(3)],["Log-loss",mt.log_loss.toFixed(3)],["Precision",pct(pr,1)],["Recall",pct(rc,1)],["F1 score",pct(2*pr*rc/(pr+rc),1)],["Accuracy",pct((tp+tn)/T.n,1)],["Specificity",pct(tn/(tn+fp),1)]]);
+$("#metrics").innerHTML=kv([["ROC-AUC",mt.roc_auc.toFixed(3)],["PR-AUC",mt.pr_auc.toFixed(3)+` <span style="font-weight:400;color:var(--ink-3)">(base ${pct(T.pos/T.n)})</span>`],["Brier score",mt.brier.toFixed(3)],["Log-loss",mt.log_loss.toFixed(3)],["Precision",pct(pr,1)],["Recall",pct(rc,1)],["F1 score",pct(2*pr*rc/(pr+rc),1)],["Accuracy",pct((tp+tn)/T.n,1)],["Specificity",pct(tn/(tn+fp),1)]]);
 function xy(el,pts,xl,yl,ref,dots){
- const W=420,H=320,l=44,b=36,t=10,r=10,X=v=>l+v*(W-l-r),Y=v=>t+(1-v)*(H-t-b);let g="";
- for(let k=0;k<=4;k++){const v=k/4;g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${t}" y2="${H-b}" stroke="#eef2f8"/><line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef2f8"/><text x="${X(v)}" y="${H-b+15}" text-anchor="middle">${v.toFixed(2)}</text><text x="${l-6}" y="${Y(v)+4}" text-anchor="end">${v.toFixed(2)}</text>`}
- g+=`<text x="${(l+W-r)/2}" y="${H-4}" text-anchor="middle">${xl}</text><text transform="translate(11 ${H/2}) rotate(-90)" text-anchor="middle">${yl}</text>`;
- g+=ref==="diag"?`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="#aab5cb" stroke-dasharray="4 4"/>`:`<line x1="${l}" x2="${W-r}" y1="${Y(ref)}" y2="${Y(ref)}" stroke="#aab5cb" stroke-dasharray="4 4"/>`;
- const path=pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join("");
- $(el).innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${yl} versus ${xl}">${g}<path d="${path}" fill="none" stroke="#1a6cf0" stroke-width="2.5"/>${dots?pts.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="#1a6cf0"/>`).join(""):""}</svg>`}
+ const W=420,H=300,l=46,b=38,t=12,r=12,X=v=>l+v*(W-l-r),Y=v=>t+(1-v)*(H-t-b);let g="";
+ for(let k=0;k<=4;k++){const v=k/4;
+  g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${t}" y2="${H-b}" stroke="var(--grid)"/>`
+   +`<line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/>`
+   +`<text x="${X(v)}" y="${H-b+16}" text-anchor="middle">${v.toFixed(2)}</text>`
+   +`<text x="${l-8}" y="${Y(v)+3.5}" text-anchor="end">${v.toFixed(2)}</text>`}
+ g+=`<line x1="${l}" x2="${W-r}" y1="${H-b}" y2="${H-b}" stroke="var(--axis)"/>`;
+ g+=`<text x="${(l+W-r)/2}" y="${H-6}" text-anchor="middle" style="font-weight:600">${xl}</text>`
+  +`<text transform="translate(12 ${H/2}) rotate(-90)" text-anchor="middle" style="font-weight:600">${yl}</text>`;
+ g+=ref==="diag"
+  ?`<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="var(--axis)" stroke-dasharray="3 3"/>`
+  :`<line x1="${l}" x2="${W-r}" y1="${Y(ref)}" y2="${Y(ref)}" stroke="var(--axis)" stroke-dasharray="3 3"/>`;
+ const path=pts.map((q,i)=>(i?"L":"M")+X(q[0]).toFixed(1)+" "+Y(q[1]).toFixed(1)).join(" ");
+ $(el).innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${yl} versus ${xl}">${g}
+  <path d="${path}" fill="none" stroke="${SER.blue}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  ${dots?pts.map(q=>`<circle cx="${X(q[0]).toFixed(1)}" cy="${Y(q[1]).toFixed(1)}" r="4" fill="${SER.blue}" stroke="#fff" stroke-width="2"/>`).join(""):""}
+  <circle class="cd" r="4.5" fill="${SER.blue}" stroke="#fff" stroke-width="2" opacity="0"/></svg>
+  <div class="tip"></div>`;
+ const host=$(el),svg=host.querySelector("svg"),cd=host.querySelector(".cd"),tip=host.querySelector(".tip");
+ svg.addEventListener("mousemove",e=>{const bb=svg.getBoundingClientRect();
+  const ux=((e.clientX-bb.left)/bb.width*W-l)/(W-l-r);
+  let bi=0,bd=Infinity;pts.forEach((q,i)=>{const d=Math.abs(q[0]-ux);if(d<bd){bd=d;bi=i}});
+  const q=pts[bi];
+  cd.setAttribute("cx",X(q[0]));cd.setAttribute("cy",Y(q[1]));cd.setAttribute("opacity","1");
+  tip.innerHTML=`<em>${esc(xl)}</em><b>${q[0].toFixed(3)}</b><em style="margin-top:3px">${esc(yl)}</em><b>${q[1].toFixed(3)}</b>`;
+  tip.style.left=X(q[0])/W*100+"%";tip.style.top=Y(q[1])/H*bb.height-10+"px";tip.style.opacity="1"});
+ svg.addEventListener("mouseleave",()=>{tip.style.opacity="0";cd.setAttribute("opacity","0")});}
 xy("#roc",T.roc,"False positive rate","True positive rate","diag");xy("#pr",T.pr,"Recall","Precision",T.pos/T.n);xy("#cal",T.cal,"Predicted risk","Actual failure rate","diag",true);
 $("#aucRoc").textContent="AUC = "+mt.roc_auc.toFixed(3)+" (dashed line is random guessing)";
 $("#aucPr").textContent="Average precision = "+mt.pr_auc.toFixed(3)+" (dashed line is the failure rate, "+pct(T.pos/T.n,1)+")";
 $("#cmSub").textContent="Counts on the test set at threshold "+REV.toFixed(2);
 $("#cm").innerHTML=`<div class="cm"><span></span><b>Predicted OK</b><b>Predicted failure</b>
- <b>Actual OK</b><div class="c" style="background:#e2f6ec;color:#0c7a45">${tn}<br><small>true negative</small></div><div class="c" style="background:#fdf0dc;color:#a35c00">${fp}<br><small>false positive</small></div>
- <b>Actual failure</b><div class="c" style="background:#fde5e8;color:#b3202f">${fn}<br><small>false negative</small></div><div class="c" style="background:#dbe8fd;color:#1a55b8">${tp}<br><small>true positive</small></div></div>`;
-$("#thr").innerHTML=T.table.map(r=>`<tr><td>${r[0].toFixed(2)}${r[0]==REV?" (chosen)":""}</td><td>${pct(r[1])}</td><td>${pct(r[2])}</td><td>${pct(r[3])}</td></tr>`).join("");
+ <b>Actual OK</b><div class="c" style="background:var(--ok-bg);color:var(--ok-ink)">${tn}<small>true negative</small></div><div class="c" style="background:var(--warn-bg);color:var(--warn-ink)">${fp}<small>false positive</small></div>
+ <b>Actual failure</b><div class="c" style="background:var(--bad-bg);color:var(--bad-ink)">${fn}<small>false negative</small></div><div class="c" style="background:#e6eefb;color:#1c5cab">${tp}<small>true positive</small></div></div>`;
+$("#thr").innerHTML=T.table.map(r=>`<tr><td>${r[0].toFixed(2)}${r[0]==REV?' <span class="tag">chosen</span>':""}</td><td class="num">${pct(r[1])}</td><td class="num">${pct(r[2])}</td><td class="num">${pct(r[3])}</td></tr>`).join("");
 const FL={transit_days:"Transit time",leg_count:"Transport legs",package_type:"Package type",fill_ratio:"Fill ratio"},im=Object.entries(T.imp);
-bars("#fi",im.map(([k,v])=>[FL[k]||k,v/im[0][1]*100,"#1a6cf0",pct(v)]));
+bars("#fi",im.map(([k,v])=>[FL[k]||k,v/im[0][1]*100,SER.blue,pct(v)]));
 $("#dm").innerHTML=kv([["Door opens R²",DR.metrics_test.door_r2.toFixed(2)],["Door opens MAE",DR.metrics_test.door_mae.toFixed(1)+" opens"],["Risk given door opens, ROC-AUC",DR.metrics_test.risk_given_opens_auc.toFixed(3)],["Spread parameter (negative binomial)",DR.nb_dispersion_k.toFixed(2)]])+`<p class="sub" style="margin:10px 0 0">Door opens are not known before shipping, so the risk given opens is a what-if only.</p>`;
 
 /* ---------- About ---------- */
-$("#team").innerHTML=TEAM.map(m=>`<div class="card"><div class="av" aria-hidden="true">${m.name.split(" ").map(w=>w[0]).slice(0,2).join("")}</div><h2 style="font-size:17px">${m.name}</h2><p class="sub" style="margin:0 0 10px">${m.role}</p><table><tbody><tr><td style="color:var(--mut);padding-left:0">University</td><td><b>${m.uni}</b></td></tr><tr><td style="color:var(--mut);padding-left:0">Major</td><td><b>${m.major}</b></td></tr></tbody></table></div>`).join("");
+$("#team").innerHTML=TEAM.map(m=>`<div class="card member"><h2>${esc(m.name)}</h2><div class="kv"><span>University</span><b>${esc(m.uni)}</b></div><div class="kv"><span>Major</span><b>${esc(m.major)}</b></div></div>`).join("");
 
 /* ---------- Router ---------- */
 function route(){const id=(location.hash||"#overview").slice(1),ok=$("#"+id)&&$("#"+id).classList.contains("page")?id:"overview";
