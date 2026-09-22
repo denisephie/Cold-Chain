@@ -380,7 +380,7 @@ code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;borde
 <!-- INFORMATION -->
 <section class="page" id="info">
   <h1>Information</h1>
-  <p class="lede">How to use the tool, and what every variable in the dataset means.</p>
+  <p class="lede">How to read the tool and what the risk bands mean. Column-by-column definitions live on <a href="#model">Model &amp; Dataset</a>.</p>
   <div class="grid e2">
     <div class="card"><h2>How to use it</h2><p class="sub">Four steps</p>
       <ol style="padding-left:18px;margin:0;line-height:1.8">
@@ -393,8 +393,6 @@ code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;borde
     <div class="card"><h2>Risk bands</h2><p class="sub" id="bandSub"></p>
       <table><tbody id="bands"></tbody></table></div>
   </div>
-  <div class="card mt"><h2>Variables in the dataset</h2><p class="sub">Descriptions marked <i>inferred</i> come from the column name. Please confirm them against your data dictionary.</p>
-    <div class="tw"><table><thead><tr><th>Variable</th><th>Role</th><th>Meaning</th><th class="num">Mean</th><th>Range</th></tr></thead><tbody id="vars"></tbody></table></div></div>
 </section>
 
 <!-- MODEL -->
@@ -406,6 +404,8 @@ code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;borde
     <div class="card"><h2>Model</h2><p class="sub" style="margin-bottom:12px">XGBoost, gradient-boosted trees</p><div id="mdesc" style="font-size:13px"></div></div>
     <div class="card"><h2>Test-set metrics</h2><p class="sub" id="metSub" style="margin-bottom:12px"></p><div id="metrics"></div></div>
   </div>
+  <div class="card mt"><h2>Variables in the dataset</h2><p class="sub" style="margin-bottom:14px">Descriptions marked <i>inferred</i> come from the column name. Please confirm them against your data dictionary.</p>
+    <div class="tw"><table><thead><tr><th>Variable</th><th>Role</th><th>Meaning</th><th class="num">Mean</th><th>Range</th></tr></thead><tbody id="vars"></tbody></table></div></div>
   <div class="grid e2 mt">
     <div class="card"><h2>ROC curve</h2><p class="sub" id="aucRoc"></p><div class="chart" id="roc"></div></div>
     <div class="card"><h2>Precision-recall curve</h2><p class="sub" id="aucPr"></p><div class="chart" id="pr"></div></div>
@@ -842,6 +842,13 @@ $("#btnReset").onclick=()=>{
 /* ---------- Information ---------- */
 $("#bandSub").textContent=`Thresholds from the model: review at ${pct(REV)}, high at ${pct(HI)}. The review threshold was picked so a missed failure costs ${ME.cost_ratio_fn_to_fp}x a false alarm.`;
 $("#bands").innerHTML=[["LOW","p-ok","below "+pct(REV),"Standard handling."],["MEDIUM","p-warn",pct(REV)+" to "+pct(HI),"Review before shipping. Shorten the trip, reduce hand-offs, upgrade packaging, add a logger."],["HIGH","p-bad",pct(HI)+" or more","Do not ship as planned. Change the plan first and add a logger with alarms."]].map(r=>`<tr><td><span class="pill ${r[1]}">${r[0]}</span></td><td style="white-space:nowrap">${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+/* ---------- Model & Dataset ---------- */
+const [tn,fp,fn,tp]=T.cm,pr=tp/(tp+fp),rc=tp/(tp+fn),mt=ME.metrics_test,mv=ME.versions;
+$("#modelSub").textContent=`Trained on ${fmt(T.train_n)} shipments and scored on ${fmt(T.n)} held-out shipments (${T.pos} silent failures). xgboost ${mv.xgboost}.`;
+$("#ds").innerHTML=[["Shipments",fmt(D.rows)],["Columns",D.cols],["Silent failure rate",pct(D.rate,1)],["Train / test split","80% / 20%, stratified"],["Missing values","temp_recovery_rate 64, rh_max 334"],["Model inputs","4 of 22 columns"]].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join("");
+const bp=ME.best_params;
+$("#mdesc").innerHTML=`<p style="margin:0 0 8px">Predicts silent-failure risk from four things known before shipping: transit time, legs, package type and fill ratio. Longer transit can never lower the risk (monotone constraint).</p><p style="margin:0 0 8px">Tuned with 40 random searches, 5-fold cross-validation and log-loss. The alert threshold was chosen from out-of-fold predictions.</p><p style="margin:0;color:var(--ink-3);font-size:12px">${bp.n_estimators} trees, depth ${bp.max_depth}, learning rate ${bp.learning_rate}, min child weight ${bp.min_child_weight}, lambda ${bp.reg_lambda}.</p>`;
+$("#metSub").textContent="Threshold "+REV.toFixed(2)+" for the classification figures";
 const MI="Model input",SN="Sensor summary, known after the trip",NU="Not used by the model";
 const VARS=[["shipment_id","ID","Unique shipment code."],["transit_days",MI,"Door-to-door transit time in days."],["door_opens","Forecast and what-if","Times the container door was opened. Predicted by the door-opens model; not known before shipping."],
 ["temp_mean_c",SN,"Mean logged temperature, °C."],["temp_max_c",SN,"Highest logged temperature, °C."],["temp_min_c",SN,"Lowest logged temperature, °C."],["temp_std_c",SN,"Standard deviation of logged temperature, °C."],
@@ -853,13 +860,6 @@ const VARS=[["shipment_id","ID","Unique shipment code."],["transit_days",MI,"Doo
 const CS=Object.fromEntries(D.colstats.map(r=>[r[0],r]));
 $("#vars").innerHTML=VARS.map(([n,ro,me])=>{const c=CS[n];return`<tr><td><b>${n}</b></td><td>${ro}</td><td>${me}</td><td class="num">${c?c[1]:n=="silent_failure"?pct(D.rate,1):"–"}</td><td style="white-space:nowrap">${c?c[2]+" to "+c[3]:n=="silent_failure"?"0 or 1":"–"}</td></tr>`}).join("");
 
-/* ---------- Model & Dataset ---------- */
-const [tn,fp,fn,tp]=T.cm,pr=tp/(tp+fp),rc=tp/(tp+fn),mt=ME.metrics_test,mv=ME.versions;
-$("#modelSub").textContent=`Trained on ${fmt(T.train_n)} shipments and scored on ${fmt(T.n)} held-out shipments (${T.pos} silent failures). xgboost ${mv.xgboost}.`;
-$("#ds").innerHTML=[["Shipments",fmt(D.rows)],["Columns",D.cols],["Silent failure rate",pct(D.rate,1)],["Train / test split","80% / 20%, stratified"],["Missing values","temp_recovery_rate 64, rh_max 334"],["Model inputs","4 of 22 columns"]].map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join("");
-const bp=ME.best_params;
-$("#mdesc").innerHTML=`<p style="margin:0 0 8px">Predicts silent-failure risk from four things known before shipping: transit time, legs, package type and fill ratio. Longer transit can never lower the risk (monotone constraint).</p><p style="margin:0 0 8px">Tuned with 40 random searches, 5-fold cross-validation and log-loss. The alert threshold was chosen from out-of-fold predictions.</p><p style="margin:0;color:var(--ink-3);font-size:12px">${bp.n_estimators} trees, depth ${bp.max_depth}, learning rate ${bp.learning_rate}, min child weight ${bp.min_child_weight}, lambda ${bp.reg_lambda}.</p>`;
-$("#metSub").textContent="Threshold "+REV.toFixed(2)+" for the classification figures";
 $("#metrics").innerHTML=kv([["ROC-AUC",mt.roc_auc.toFixed(3)],["PR-AUC",mt.pr_auc.toFixed(3)+` <span style="font-weight:400;color:var(--ink-3)">(base ${pct(T.pos/T.n)})</span>`],["Brier score",mt.brier.toFixed(3)],["Log-loss",mt.log_loss.toFixed(3)],["Precision",pct(pr,1)],["Recall",pct(rc,1)],["F1 score",pct(2*pr*rc/(pr+rc),1)],["Accuracy",pct((tp+tn)/T.n,1)],["Specificity",pct(tn/(tn+fp),1)]]);
 function xy(el,pts,xl,yl,ref,dots){
  const W=420,H=300,l=46,b=38,t=12,r=12,X=v=>l+v*(W-l-r),Y=v=>t+(1-v)*(H-t-b);let g="";
