@@ -1,9 +1,9 @@
 """
 export_web.py - run AFTER Model.py. Converts ./artifacts (trained models) and the dataset into
-web/data.js so the website can predict in the browser with no backend.
+data.js so the website can predict in the browser with no backend.
 
     python Model.py
-    python export_web.py      # writes web/data.js
+    python export_web.py      # writes ./data.js (the file index.html loads)
 """
 import json
 import os
@@ -16,7 +16,7 @@ from sklearn.metrics import (average_precision_score, confusion_matrix, precisio
                              roc_auc_score, roc_curve)
 from sklearn.model_selection import train_test_split
 
-ART, OUT, CSV = "./artifacts", "./web", "./shipment-sensor-dataset.csv"
+ART, OUT, CSV = "./artifacts", ".", "./shipment-sensor-dataset.csv"
 TARGET, OPENS = "silent_failure", "door_opens"
 os.makedirs(OUT, exist_ok=True)
 
