@@ -223,8 +223,8 @@ button.ghost:hover{background:var(--sunken);color:var(--ink)}
  text-transform:uppercase;margin-top:3px;opacity:.75}
 
 /* ---------- about ---------- */
-.av{width:52px;height:52px;border-radius:var(--r);background:var(--navy);color:#fff;display:grid;
- place-items:center;font-size:17px;font-weight:650;margin-bottom:13px;letter-spacing:.02em}
+.member h2{font-size:16px;font-weight:650;letter-spacing:-.012em;margin-bottom:12px;
+ padding-bottom:12px;border-bottom:1px solid var(--line-2)}
 code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;border-radius:4px;
  font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
@@ -431,9 +431,9 @@ code{background:var(--sunken);border:1px solid var(--line);padding:1px 5px;borde
 <script>
 /* ===== EDIT ME ===== */
 const TEAM=[
- {name:"Team Member 1",uni:"Universitas Indonesia",major:"Computer Science",role:"Model development"},
- {name:"Team Member 2",uni:"Institut Teknologi Bandung",major:"Industrial Engineering",role:"Data and logistics"},
- {name:"Team Member 3",uni:"Universitas Gadjah Mada",major:"Statistics",role:"Evaluation and design"}];
+ {name:"Team Member 1",uni:"Universitas Indonesia",major:"Computer Science"},
+ {name:"Team Member 2",uni:"Institut Teknologi Bandung",major:"Industrial Engineering"},
+ {name:"Team Member 3",uni:"Universitas Gadjah Mada",major:"Statistics"}];
 /* ==================== */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const CC=window.CC,M=CC.models,ME=CC.meta,D=CC.data,T=CC.test,DR=CC.door,RNG=ME.training_ranges;
@@ -902,7 +902,7 @@ bars("#fi",im.map(([k,v])=>[FL[k]||k,v/im[0][1]*100,SER.blue,pct(v)]));
 $("#dm").innerHTML=kv([["Door opens R²",DR.metrics_test.door_r2.toFixed(2)],["Door opens MAE",DR.metrics_test.door_mae.toFixed(1)+" opens"],["Risk given door opens, ROC-AUC",DR.metrics_test.risk_given_opens_auc.toFixed(3)],["Spread parameter (negative binomial)",DR.nb_dispersion_k.toFixed(2)]])+`<p class="sub" style="margin:10px 0 0">Door opens are not known before shipping, so the risk given opens is a what-if only.</p>`;
 
 /* ---------- About ---------- */
-$("#team").innerHTML=TEAM.map(m=>`<div class="card"><div class="av" aria-hidden="true">${m.name.split(" ").map(w=>w[0]).slice(0,2).join("")}</div><h2 style="font-size:17px">${m.name}</h2><p class="sub" style="margin:0 0 12px">${m.role}</p><div class="kv"><span>University</span><b>${m.uni}</b></div><div class="kv"><span>Major</span><b>${m.major}</b></div></div>`).join("");
+$("#team").innerHTML=TEAM.map(m=>`<div class="card member"><h2>${esc(m.name)}</h2><div class="kv"><span>University</span><b>${esc(m.uni)}</b></div><div class="kv"><span>Major</span><b>${esc(m.major)}</b></div></div>`).join("");
 
 /* ---------- Router ---------- */
 function route(){const id=(location.hash||"#overview").slice(1),ok=$("#"+id)&&$("#"+id).classList.contains("page")?id:"overview";
